@@ -335,6 +335,8 @@ class MainWindow(QMainWindow):
 
     def quit_application(self):
         """退出应用程序"""
+        self.tray_notified = True
+
         # 确保清理资源
         if hasattr(self, 'hotkey_manager') and self.hotkey_manager:
             self.hotkey_manager.stop_listening()

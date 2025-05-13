@@ -28,8 +28,17 @@ datas += models
 datas += [('_internal/ocr.png', '.')]
 binaries += paddle_dlls
 
+# 直接复制整个Cython目录
+cython_dir = os.path.join(site_packages, 'Cython')
+if os.path.exists(cython_dir):
+    for root, dirs, files in os.walk(cython_dir):
+        for file in files:
+            file_path = os.path.join(root, file)
+            rel_path = os.path.relpath(os.path.dirname(file_path), site_packages)
+            datas.append((file_path, rel_path))
+
 a = Analysis(
-    ['capture_pick.py'],
+    ['main.py'],
     pathex=[],
     binaries=binaries,
     datas=datas,

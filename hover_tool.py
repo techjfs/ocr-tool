@@ -2,6 +2,7 @@ from PySide6.QtCore import QObject, QPoint, Signal, QTimer, Qt, QRectF
 from PySide6.QtGui import QGuiApplication, QCursor, QPen, QColor, QPainter
 from PySide6.QtWidgets import QGraphicsScene, QGraphicsView, QGraphicsRectItem, QApplication
 import jieba
+import re
 from ocr_engine import OCREngine
 
 
@@ -15,7 +16,7 @@ class HoverTool(QObject):
         super().__init__()
         self.ocr_engine = OCREngine.get_instance()
         # 初始截图尺寸参数 - 较小的区域
-        self.small_width = 120
+        self.small_width = 160
         self.small_height = 60
         # 备用截图尺寸参数 - 稍大的区域
         self.medium_width = 240
@@ -41,7 +42,8 @@ class HoverTool(QObject):
         # 创建场景和视图
         self.scene = QGraphicsScene()
         self.view = QGraphicsView(self.scene)
-        self.view.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool)
+        self.view.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool)
         self.view.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.view.setStyleSheet("background: transparent;")
         self.view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -194,7 +196,7 @@ class HoverTool(QObject):
         if screenshot.isNull():
             return None
 
-        #TODO: delete it
+        # TODO: delete it
         import os
         debug_dir = "debug_captures"
         os.makedirs(debug_dir, exist_ok=True)
@@ -204,6 +206,75 @@ class HoverTool(QObject):
         # 处理OCR
         img = screenshot.toImage()
         return self.ocr_engine.process_image(img)
+
+    def _detect_language(self, text):
+        """检测文本是否为英文"""
+        # 检查是否包含英文字符（基本判断）
+        english_pattern = re.compile(r'[a-zA-Z]')
+        return bool(english_pattern.search(text))
+
+    def _tokenize_text(self, text, box):
+        """根据语言选择不同的分词方法"""
+        # 检查文本中是否包含英文字符
+        is_english = self._detect_language(text)
+        contains_cjk = self._contains_cjk(text)
+
+        # 如果文本既包含英文又包含中文，使用混合处理模式
+        if is_english and contains_cjk:
+            # 优先使用jieba分词，它能同时处理中英文混合文本
+            words = []
+            for tk in jieba.tokenize(text):
+                word = tk[0]
+                if word.strip() == '' or word in ['，', '。', '!', '?', ',', '.', ' ']:
+                    continue
+                start_idx = tk[1]
+                end_idx = tk[2]
+                words.append((word, start_idx, end_idx))
+
+            # 如果jieba分词失败或没有得到有效结果，回退到空格分割
+            if not words:
+                return self._space_tokenize(text)
+            return words
+
+        # 纯英文文本，按空格分词
+        elif is_english:
+            return self._space_tokenize(text)
+
+        # 纯中文文本，使用jieba分词
+        else:
+            words = []
+            for tk in jieba.tokenize(text):
+                word = tk[0]
+                if word.strip() == '' or word in ['，', '。', '!', '?', ',', '.', ' ']:
+                    continue
+                start_idx = tk[1]
+                end_idx = tk[2]
+                words.append((word, start_idx, end_idx))
+            return words
+
+    def _space_tokenize(self, text):
+        """使用空格分词，专门处理英文文本"""
+        words = []
+        # 查找所有连续的非空白字符序列
+        word_matches = list(re.finditer(r'\S+', text))
+
+        if word_matches:
+            for match in word_matches:
+                word = match.group()
+                start = match.start()
+                end = match.end()
+                # 过滤掉单个标点符号
+                if word.strip() and not (len(word) == 1 and word in ['，', '。', '!', '?', ',', '.', ';', ':', '"', "'"]):
+                    words.append((word, start, end))
+
+        return words
+
+    def _contains_cjk(self, text):
+        """检测文本是否包含中日韩字符"""
+        # Unicode范围: CJK统一表意文字 (4E00-9FFF), CJK扩展 A (3400-4DBF),
+        # 半角和全角表单 (FF00-FFEF), 中日韩符号和标点符号 (3000-303F)
+        cjk_pattern = re.compile(r'[\u4e00-\u9fff\u3400-\u4dbf\uff00-\uffef\u3000-\u303f]')
+        return bool(cjk_pattern.search(text))
 
     def _process_result(self, result, pos, width, height):
         """处理OCR结果，提取文本"""
@@ -253,27 +324,36 @@ class HoverTool(QObject):
 
         text, box, _ = text_at_mouse
 
-        # 计算每个字符的平均宽度
+        # 打印调试信息
+        print(f"识别文本: '{text}'")
+
+        # 计算文本框的边界信息
         x1 = min(point[0] for point in box)
         x2 = max(point[0] for point in box)
+        y1 = min(point[1] for point in box)
+        y2 = max(point[1] for point in box)
         box_width = x2 - x1
+        box_height = y2 - y1
 
         text_length = len(text)
         if text_length == 0:
             return None
 
+        # 计算每个字符的平均宽度
         avg_char_width = box_width / text_length
 
-        # 使用jieba分词
-        tokenized = list(jieba.tokenize(text))
-        word_positions = []
-        for tk in tokenized:
-            word = tk[0]
-            if word.strip() == '' or word in ['，', '。', '!', '?', ',', '.', ' ']:
-                continue
-            start_idx = tk[1]
-            end_idx = tk[2]
-            word_positions.append((word, start_idx, end_idx))
+        # 调整文本和实际显示区域的对应关系
+        # 处理OCR可能识别出括号等不在显示区域内的文本的情况
+        actual_text_start = 0
+        actual_text_end = text_length
+
+        # 估算可见区域对应的文本下标 - 对应上面的例子，根据矩形区域计算"llo world by"对应的文本起始位置
+        # 这一步是启发式的，我们尝试将OCR文本与实际可见区域进行对齐
+
+        # 使用改进的分词方法
+        word_positions = self._tokenize_text(text, box)
+
+        print(f"word_positions:{word_positions}")
 
         # 如果没有找到有效单词（分词失败），返回整个文本
         if not word_positions:
@@ -284,27 +364,31 @@ class HoverTool(QObject):
 
         # 根据鼠标位置找到对应的单词
         mouse_x = relative_mouse_pos.x()
+        mouse_y = relative_mouse_pos.y()
         selected_word = None
         min_word_distance = float('inf')
 
+        # 计算鼠标到每个单词的距离
         for word, start, end in word_positions:
+            # 计算单词在屏幕上的边界
             word_start_x = x1 + start * avg_char_width
             word_end_x = x1 + end * avg_char_width
+            word_center_x = (word_start_x + word_end_x) / 2
+            word_center_y = (y1 + y2) / 2
 
-            # 计算鼠标到单词边界的距离
-            if mouse_x < word_start_x:
-                distance = word_start_x - mouse_x
-            elif mouse_x > word_end_x:
-                distance = mouse_x - word_end_x
-            else:
-                # 鼠标在单词内部
-                distance = 0
+            # 计算鼠标到单词中心的二维欧几里得距离
+            # 使用欧几里得距离可以更好地处理鼠标指向单词的情况
+            distance = ((word_center_x - mouse_x) ** 2 + (word_center_y - mouse_y) ** 2) ** 0.5
+
+            # 调试输出：显示每个单词的位置和距离
+            print(f"单词: '{word}', 位置: ({word_start_x},{word_center_y}), 距离: {distance}")
 
             if distance < min_word_distance:
                 min_word_distance = distance
                 selected_word = word
 
         if selected_word:
+            print(f"选中单词: '{selected_word}'")
             self.word_found.emit(selected_word)
             self.status_changed.emit("成功识别文本并复制到剪贴板")
             # 复制到剪贴板
