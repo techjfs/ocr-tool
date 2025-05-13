@@ -139,9 +139,9 @@ class WordPickerWindow(QMainWindow):
         self.ocr = PaddleOCR(
             use_angle_cls=True,
             lang='ch',
-            det_model_dir="./_internal/models/det/",
-            rec_model_dir="./_internal/models/rec/",
-            cls_model_dir="./_internal/models/cls/"
+            det_model_dir="../_internal/models/det/",
+            rec_model_dir="../_internal/models/rec/",
+            cls_model_dir="../_internal/models/cls/"
         )
 
         # 创建系统托盘图标
@@ -159,7 +159,7 @@ class WordPickerWindow(QMainWindow):
     def create_tray_icon(self):
         # 创建系统托盘图标
         self.tray_icon = QSystemTrayIcon(self)
-        self.tray_icon.setIcon(QIcon("_internal/ocr.png"))
+        self.tray_icon.setIcon(QIcon("../_internal/ocr.png"))
 
         # 创建托盘菜单
         tray_menu = QMenu()
@@ -294,7 +294,7 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
 
     # 确保应用程序有一个图标
-    app.setWindowIcon(QIcon("_internal/ocr.png"))
+    app.setWindowIcon(QIcon("../_internal/ocr.png"))
 
     window = WordPickerWindow()
     window.show()

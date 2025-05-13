@@ -227,9 +227,9 @@ class OCRTool(QMainWindow):
         self.ocr = PaddleOCR(
             use_angle_cls=True,
             lang='ch',
-            det_model_dir="./_internal/models/det/",
-            rec_model_dir="./_internal/models/rec/",
-            cls_model_dir="./_internal/models/cls/"
+            det_model_dir="../_internal/models/det/",
+            rec_model_dir="../_internal/models/rec/",
+            cls_model_dir="../_internal/models/cls/"
         )
         self.hotkey = "alt+c"  # 默认快捷键
         self.tray_notified = False
@@ -250,7 +250,7 @@ class OCRTool(QMainWindow):
     def setup_tray_icon(self):
         self.tray_icon = QSystemTrayIcon(self)
         # 尝试加载图标，如果失败则使用默认图标
-        self.tray_icon.setIcon(QIcon("_internal/ocr.png"))
+        self.tray_icon.setIcon(QIcon("../_internal/ocr.png"))
         self.tray_icon.setToolTip("OCR小工具")
         tray_menu = QMenu()
         show_action = tray_menu.addAction("显示")
