@@ -18,8 +18,6 @@ class OCREngine:
         return cls._instance
 
     def __init__(self):
-        """初始化OCR引擎，准备中文和英文两种模型"""
-        # 初始化中文OCR引擎
         self.ocr = PaddleOCR(
             use_doc_unwarping=True,
             use_textline_orientation=False,

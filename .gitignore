@@ -1,6 +1,7 @@
 build/
 dist/
 debug_captures/
+ocr_result/
 
 __pycache__/
 
