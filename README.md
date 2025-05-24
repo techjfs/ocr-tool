@@ -10,15 +10,11 @@
 2. MacOS有自己的一套OCR技术，可参考[Shortcuts.app & Apple's OCR](https://xiaoyifang.github.io/goldendict-ng/howto/ocr/#shortcutsapp-apples-ocr)
 
 核心技术:
-+ [PaddleOCR, v4版本](https://paddlepaddle.github.io/PaddleOCR/latest/index.html)
++ [PaddleOCR, v5版本](https://paddlepaddle.github.io/PaddleOCR/main/quick_start.html)
 
 ## 安装依赖
 ```bash
-pip install poetry
-
-poetry install
-
-pip install pyinstaller
+pip install -r requirements.txt
 ```
 
 ## 打包

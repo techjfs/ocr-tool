@@ -11,7 +11,6 @@ from PySide6.QtGui import QIcon, QGuiApplication
 from hotkey_manager import HotkeyManager, WindowsMouseHook
 from capture_tool import CaptureTool
 from hover_tool import HoverTool
-from ocr_engine import OCREngine
 
 
 class HotkeySettingDialog(QDialog):
@@ -54,8 +53,6 @@ class MainWindow(QMainWindow):
         self.tray_notified = False
         self.has_external_tool = False
 
-        # 初始化OCR组件
-        self.ocr_engine = OCREngine.get_instance()
         self.capture_tool = CaptureTool()
         self.hover_tool = HoverTool()
 

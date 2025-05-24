@@ -3,7 +3,7 @@ from PySide6.QtGui import QGuiApplication, QCursor, QPen, QColor, QPainter
 from PySide6.QtWidgets import QGraphicsScene, QGraphicsView, QGraphicsRectItem, QApplication
 import jieba
 import re
-from ocr_engine import OCREngine
+from ocr_engine_v5 import OCREngine
 
 
 class HoverTool(QObject):
@@ -175,7 +175,7 @@ class HoverTool(QObject):
             return False
 
         # 检查是否有至少一个有效文本区域
-        for text, box, confidence in result:
+        for text, confidence in result:
             # 添加置信度检查，减少误判
             if len(text.strip()) >= self.min_text_length and confidence >= self.confidence_threshold:
                 return True
