@@ -13,15 +13,17 @@
 注意:
 1. 支持跨平台使用，Windows系统和MacOS系统
 2. MacOS有自己的一套OCR技术，可参考[Shortcuts.app & Apple's OCR](https://xiaoyifang.github.io/goldendict-ng/howto/ocr/#shortcutsapp-apples-ocr)
-
+3. 由于自己电脑配置低，默认使用的是CPU版本的PaddleOCR，未来有可能的话会尝试GPU版本
 
 核心技术:
 + [PaddleOCR, v5版本](https://paddlepaddle.github.io/PaddleOCR/main/quick_start.html)
 
 ## TODO
 - [ ] 重构热键管理，支持Mac和Windows
+- [ ] 优先保证Windows下功能正常
 - [ ] 验证在MacOS下软件功能是否正常
 - [ ] 打包方式完善
+- [ ] 兼容CPU和GPU的ocr_engine，根据电脑配置决定使用哪个版本
 
 ## 安装依赖
 ```bash
