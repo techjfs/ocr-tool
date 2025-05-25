@@ -175,7 +175,7 @@ class HoverTool(QObject):
             return False
 
         # 检查是否有至少一个有效文本区域
-        for text, confidence in result:
+        for text, box, confidence in result:
             # 添加置信度检查，减少误判
             if len(text.strip()) >= self.min_text_length and confidence >= self.confidence_threshold:
                 return True
@@ -213,7 +213,7 @@ class HoverTool(QObject):
         english_pattern = re.compile(r'[a-zA-Z]')
         return bool(english_pattern.search(text))
 
-    def _tokenize_text(self, text, box):
+    def _tokenize_text(self, text):
         """根据语言选择不同的分词方法"""
         # 检查文本中是否包含英文字符
         is_english = self._detect_language(text)
@@ -291,11 +291,9 @@ class HoverTool(QObject):
         # 步骤1: 找出鼠标位置所在的文本框
         text_at_mouse = None
         for text, box, conf in filtered_results:
+            print(f"text {text} box {box}")
             # 计算文本框边界
-            min_x = min(point[0] for point in box)
-            max_x = max(point[0] for point in box)
-            min_y = min(point[1] for point in box)
-            max_y = max(point[1] for point in box)
+            min_x, max_x, min_y, max_y = box
 
             # 检查鼠标是否在文本框内部或靠近文本框边缘
             if (min_x - self.mouse_influence_radius <= relative_mouse_pos.x() <= max_x + self.mouse_influence_radius and
@@ -308,8 +306,9 @@ class HoverTool(QObject):
             min_distance = float('inf')
             for text, box, conf in filtered_results:
                 # 计算文本框中心点
-                center_x = sum(point[0] for point in box) / 4
-                center_y = sum(point[1] for point in box) / 4
+                min_x, max_x, min_y, max_y = box
+                center_x = sum((min_x, max_x)) / 2
+                center_y = sum((min_y, max_y)) / 2
 
                 # 计算与鼠标的距离
                 distance = ((center_x - relative_mouse_pos.x()) ** 2 +
@@ -328,10 +327,7 @@ class HoverTool(QObject):
         print(f"识别文本: '{text}'")
 
         # 计算文本框的边界信息
-        x1 = min(point[0] for point in box)
-        x2 = max(point[0] for point in box)
-        y1 = min(point[1] for point in box)
-        y2 = max(point[1] for point in box)
+        x1, y1, x2, y2 = box
         box_width = x2 - x1
         box_height = y2 - y1
 
@@ -351,7 +347,7 @@ class HoverTool(QObject):
         # 这一步是启发式的，我们尝试将OCR文本与实际可见区域进行对齐
 
         # 使用改进的分词方法
-        word_positions = self._tokenize_text(text, box)
+        word_positions = self._tokenize_text(text)
 
         print(f"word_positions:{word_positions}")
 

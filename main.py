@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QIcon, QGuiApplication
 
-from hotkey_manager import HotkeyManager, WindowsMouseHook
+from hotkey_manager import CrossPlatformHotkeyManager
 from capture_tool import CaptureTool
 from hover_tool import HoverTool
 
@@ -133,16 +133,12 @@ class MainWindow(QMainWindow):
     def setup_hotkey_manager(self):
         """设置全局热键管理器"""
         if hasattr(self, 'hotkey_manager') and self.hotkey_manager:
-            self.hotkey_manager.stop_listening()
+            self.hotkey_manager.stop()
 
-        self.hotkey_manager = HotkeyManager(self.hotkey)
+        self.hotkey_manager = CrossPlatformHotkeyManager(self.hotkey)
         self.hotkey_manager.hotkey_pressed.connect(self.start_screenshot)
-        self.hotkey_manager.start_listening()
-
-        # 设置Windows鼠标钩子 (仅在Windows上)
-        if sys.platform == 'win32':
-            self.mouse_hook = WindowsMouseHook()
-            self.mouse_hook.mouse_clicked.connect(self.hover_tool.capture_at_cursor)
+        self.hotkey_manager.mouse_clicked.connect(self.hover_tool.capture_at_cursor)
+        self.hotkey_manager.start()
 
     def setup_tray_icon(self):
         """设置系统托盘图标"""
@@ -232,19 +228,13 @@ class MainWindow(QMainWindow):
         """切换悬停取词模式"""
         if checked:
             # 启用悬停取词模式
-            if sys.platform == 'win32' and hasattr(self, 'mouse_hook'):
-                self.mouse_hook.install()
-                self.status_label.setText("悬停取词模式已启用，按Alt+鼠标左键进行取词")
-                self.statusBar().showMessage("悬停取词模式已启用")
-            else:
-                self.hover_btn.setChecked(False)
-                QMessageBox.warning(self, "错误", "悬停取词功能仅在Windows系统上可用")
+            self.status_label.setText("悬停取词模式已启用，按Alt+鼠标左键进行取词")
+            self.statusBar().showMessage("悬停取词模式已启用")
+
         else:
             # 禁用悬停取词模式
-            if sys.platform == 'win32' and hasattr(self, 'mouse_hook'):
-                self.mouse_hook.uninstall()
-                self.status_label.setText("就绪")
-                self.statusBar().showMessage("悬停取词模式已禁用")
+            self.status_label.setText("就绪")
+            self.statusBar().showMessage("悬停取词模式已禁用")
 
     def setup_hotkey(self):
         """设置全局快捷键"""
@@ -336,10 +326,7 @@ class MainWindow(QMainWindow):
 
         # 确保清理资源
         if hasattr(self, 'hotkey_manager') and self.hotkey_manager:
-            self.hotkey_manager.stop_listening()
-
-        if sys.platform == 'win32' and hasattr(self, 'mouse_hook'):
-            self.mouse_hook.uninstall()
+            self.hotkey_manager.stop()
 
         QApplication.quit()
 

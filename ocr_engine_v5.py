@@ -56,23 +56,27 @@ class OCREngine:
         if image.isNull():
             return []
 
-        # 转换为numpy数组
-        image.save("ocr_result/ocr.png")
+        import os
+        ocr_dir = "ocr_result"
+        os.makedirs(ocr_dir, exist_ok=True)
+        screenshot_path = os.path.join(ocr_dir, "ocr.png")
+        image.save(screenshot_path)
 
-        result = self.ocr.predict("ocr_result/ocr.png")
+        result = self.ocr.predict(screenshot_path)
 
         texts = []
         for res in result:
             res.print()
-            res.save_to_json("ocr_result")
-            with open("ocr_result/ocr_res.json", "r", encoding='utf-8') as f:
+            res.save_to_json(ocr_dir)
+            ocr_res_path = os.path.join(ocr_dir, "ocr_res.json")
+            with open(ocr_res_path, "r", encoding='utf-8') as f:
                 json_data = json.loads(f.read())
                 for i, text in enumerate(json_data.get("rec_texts")):
-                    texts.append((text, json_data.get("rec_scores")[i]))
+                    texts.append((text, json_data.get("rec_boxes")[i], json_data.get("rec_scores")[i]))
         return texts
 
 
     def get_text_only(self, image: QImage):
         """只返回文本结果，不含位置信息"""
         results = self.process_image(image)
-        return [text for text, _ in results]
+        return [text for text, _, _ in results]
