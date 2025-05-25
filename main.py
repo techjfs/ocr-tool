@@ -4,11 +4,12 @@ import subprocess
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                                QHBoxLayout, QPushButton, QLabel, QTextEdit,
                                QLineEdit, QSystemTrayIcon, QMenu, QMessageBox,
-                               QDialog)
+                               QDialog, QFormLayout)
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QIcon, QGuiApplication
 
 from hotkey_manager import CrossPlatformHotkeyManager
+from settings_manager import SettingsManager
 from capture_tool import CaptureTool
 from hover_tool import HoverTool
 
@@ -43,6 +44,154 @@ class HotkeySettingDialog(QDialog):
     def get_hotkey(self):
         return self.hotkey_input.text()
 
+class SettingsDialog(QDialog):
+    """设置对话框"""
+
+    def __init__(self, settings_manager, parent=None):
+        super().__init__(parent)
+        self.settings_manager = settings_manager
+        self.setWindowTitle("应用设置")
+        self.setModal(True)
+        self.resize(400, 300)
+
+        self.setup_ui()
+        self.load_settings()
+
+    def setup_ui(self):
+        layout = QVBoxLayout()
+
+        # 创建表单布局
+        form_layout = QFormLayout()
+
+        # 用户名设置
+        self.username_edit = QLineEdit()
+        form_layout.addRow("用户名:", self.username_edit)
+
+        # 自动保存间隔
+        self.autosave_spinbox = QSpinBox()
+        self.autosave_spinbox.setRange(1, 60)
+        self.autosave_spinbox.setSuffix(" 分钟")
+        form_layout.addRow("自动保存间隔:", self.autosave_spinbox)
+
+        # 启用通知
+        self.notification_checkbox = QCheckBox()
+        form_layout.addRow("启用通知:", self.notification_checkbox)
+
+        # 主题选择
+        self.theme_combo = QComboBox()
+        self.theme_combo.addItems(["浅色", "深色", "系统默认"])
+        form_layout.addRow("主题:", self.theme_combo)
+
+        # 语言选择
+        self.language_combo = QComboBox()
+        self.language_combo.addItems(["中文", "English", "日本語"])
+        form_layout.addRow("语言:", self.language_combo)
+
+        layout.addLayout(form_layout)
+
+        # 字体和颜色设置
+        font_color_layout = QHBoxLayout()
+
+        self.font_button = QPushButton("选择字体")
+        self.font_button.clicked.connect(self.choose_font)
+        font_color_layout.addWidget(self.font_button)
+
+        self.color_button = QPushButton("选择颜色")
+        self.color_button.clicked.connect(self.choose_color)
+        font_color_layout.addWidget(self.color_button)
+
+        layout.addLayout(font_color_layout)
+
+        # 按钮
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.RestoreDefaults
+        )
+        button_box.accepted.connect(self.accept)
+        button_box.rejected.connect(self.reject)
+        button_box.button(QDialogButtonBox.StandardButton.RestoreDefaults).clicked.connect(self.restore_defaults)
+
+        layout.addWidget(button_box)
+
+        self.setLayout(layout)
+
+        # 用于存储选择的字体和颜色
+        self.selected_font = None
+        self.selected_color = None
+
+    def load_settings(self):
+        """从设置中加载当前值"""
+        self.username_edit.setText(self.settings_manager.get_value("username", ""))
+        self.autosave_spinbox.setValue(int(self.settings_manager.get_value("autosave_interval", 5)))
+        self.notification_checkbox.setChecked(
+            self.settings_manager.get_value("enable_notifications", True, type=bool)
+        )
+        self.theme_combo.setCurrentText(self.settings_manager.get_value("theme", "浅色"))
+        self.language_combo.setCurrentText(self.settings_manager.get_value("language", "中文"))
+
+        # 加载字体设置
+        font_family = self.settings_manager.get_value("font_family", "Arial")
+        font_size = int(self.settings_manager.get_value("font_size", 12))
+        self.selected_font = QFont(font_family, font_size)
+
+        # 加载颜色设置
+        color_name = self.settings_manager.get_value("color", "#000000")
+        self.selected_color = QColor(color_name)
+
+    def choose_font(self):
+        """选择字体"""
+        ok, font = QFontDialog.getFont(self.selected_font or QFont(), self)
+        if ok:
+            self.selected_font = font
+            self.font_button.setText(f"字体: {font.family()}, {font.pointSize()}pt")
+
+    def choose_color(self):
+        """选择颜色"""
+        color = QColorDialog.getColor(self.selected_color or QColor(), self)
+        if color.isValid():
+            self.selected_color = color
+            # 更新按钮背景色以显示选择的颜色
+            self.color_button.setStyleSheet(f"background-color: {color.name()}")
+
+    def restore_defaults(self):
+        """恢复默认设置"""
+        reply = QMessageBox.question(
+            self, "确认", "确定要恢复默认设置吗？",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            self.username_edit.setText("")
+            self.autosave_spinbox.setValue(5)
+            self.notification_checkbox.setChecked(True)
+            self.theme_combo.setCurrentText("浅色")
+            self.language_combo.setCurrentText("中文")
+            self.selected_font = QFont("Arial", 12)
+            self.selected_color = QColor("#000000")
+            self.font_button.setText("选择字体")
+            self.color_button.setStyleSheet("")
+
+    def accept(self):
+        """保存设置"""
+        self.save_settings()
+        super().accept()
+
+    def save_settings(self):
+        """保存所有设置"""
+        self.settings_manager.set_value("username", self.username_edit.text())
+        self.settings_manager.set_value("autosave_interval", self.autosave_spinbox.value())
+        self.settings_manager.set_value("enable_notifications", self.notification_checkbox.isChecked())
+        self.settings_manager.set_value("theme", self.theme_combo.currentText())
+        self.settings_manager.set_value("language", self.language_combo.currentText())
+
+        if self.selected_font:
+            self.settings_manager.set_value("font_family", self.selected_font.family())
+            self.settings_manager.set_value("font_size", self.selected_font.pointSize())
+
+        if self.selected_color:
+            self.settings_manager.set_value("color", self.selected_color.name())
+
+        # 强制同步到磁盘
+        self.settings_manager.sync()
 
 class MainWindow(QMainWindow):
     """OCR工具主窗口"""
@@ -55,6 +204,8 @@ class MainWindow(QMainWindow):
 
         self.capture_tool = CaptureTool()
         self.hover_tool = HoverTool()
+
+        self.settings_manager = SettingsManager(use_file_storage=True)
 
         # 设置界面
         self.init_ui()
@@ -80,6 +231,17 @@ class MainWindow(QMainWindow):
         central_widget = QWidget()
         layout = QVBoxLayout()
 
+        # 显示配置文件信息
+        config_info = self.settings_manager.get_config_info()
+        config_info_text = f"配置文件: {config_info['path']}\n版本: {config_info['version']}"
+        if config_info.get('size'):
+            config_info_text += f" | 大小: {config_info['size']} bytes"
+
+        config_path_label = QLabel(config_info_text)
+        config_path_label.setWordWrap(True)
+        config_path_label.setStyleSheet("color: #666; font-size: 10px; margin-bottom: 10px;")
+        layout.addWidget(config_path_label)
+
         # 状态指示标签
         self.status_label = QLabel("就绪")
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -95,6 +257,9 @@ class MainWindow(QMainWindow):
 
         self.hotkey_btn = QPushButton(f"设置快捷键 ({self.hotkey})", self)
         self.hotkey_btn.clicked.connect(self.setup_hotkey)
+
+        self.settings_button = QPushButton("设置", self)
+        self.settings_button.clicked.connect(self.open_settings)
 
         # 结果显示区域
         self.result_text = QTextEdit()
@@ -177,6 +342,16 @@ class MainWindow(QMainWindow):
         self.tray_icon.setContextMenu(tray_menu)
         self.tray_icon.activated.connect(self.tray_icon_activated)
         self.tray_icon.show()
+
+    def open_settings(self):
+        """打开设置对话框"""
+        dialog = SettingsDialog(self.settings_manager, self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.apply_settings()
+            QMessageBox.information(self, "成功", "设置已保存并应用！")
+
+    def apply_settings(self):
+        pass
 
     def connect_signals(self):
         """连接组件信号"""
