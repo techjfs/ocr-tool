@@ -18,15 +18,14 @@
 + [PaddleOCR, v5版本](https://paddlepaddle.github.io/PaddleOCR/main/quick_start.html)
 
 ## TODO
-- [ ] 重构热键管理，支持Mac和Windows
+- [x] 重构热键管理，支持Mac和Windows
 - [ ] 优先保证Windows下功能正常
 - [ ] 验证在MacOS下软件功能是否正常
 - [ ] 打包方式完善
 - [ ] 兼容CPU和GPU的ocr_engine，根据用户配置决定使用哪个版本
-- [ ] 将部分参数配置化
-- [ ] GUI美化，保持界面风格一致
+- [x] 将部分参数配置化
+- [x] GUI美化，保持界面风格一致
 - [ ] 如果OCR取词出现同分数，考虑是否返回多个，让用户决定
-- [ ] 默认使用的是CPU版本的PaddleOCR测试功能，未来有可能的话会尝试GPU版本(不紧急不重要)
 
 ## 安装依赖
 ```bash

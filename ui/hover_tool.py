@@ -3,7 +3,7 @@ from PySide6.QtGui import QGuiApplication, QCursor, QPen, QColor, QPainter
 from PySide6.QtWidgets import QGraphicsScene, QGraphicsView, QGraphicsRectItem, QApplication
 import jieba
 import re
-from ocr_engine_v5 import OCREngine
+from core.ocr_engine_v5 import OCREngine
 
 
 class HoverTool(QObject):

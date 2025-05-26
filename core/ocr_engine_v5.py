@@ -3,7 +3,7 @@ import json
 from paddleocr import PaddleOCR
 import re
 from PySide6.QtGui import QImage
-from utils import qimage_to_numpy
+from util.utils import PathConfig
 
 
 class OCREngine:
@@ -24,9 +24,9 @@ class OCREngine:
             use_doc_orientation_classify=False,
             device="CPU",
             text_detection_model_name="PP-OCRv5_server_det",
-            text_detection_model_dir="./_internal/official_models/PP-OCRv5_server_det/",
+            text_detection_model_dir=PathConfig.get_model_path("PP-OCRv5_server_det"),
             text_recognition_model_name="PP-OCRv5_server_rec",
-            text_recognition_model_dir="./_internal/official_models/PP-OCRv5_server_rec/"
+            text_recognition_model_dir=PathConfig.get_model_path("PP-OCRv5_server_rec"),
         )
 
     def is_english_only(self, text_list):
@@ -57,7 +57,7 @@ class OCREngine:
             return []
 
         import os
-        ocr_dir = "ocr_result"
+        ocr_dir = "../ocr_result"
         os.makedirs(ocr_dir, exist_ok=True)
         screenshot_path = os.path.join(ocr_dir, "ocr.png")
         image.save(screenshot_path)

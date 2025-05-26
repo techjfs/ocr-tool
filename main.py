@@ -8,10 +8,10 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QIcon
 
-from hotkey_manager import CrossPlatformHotkeyManager
-from settings_manager import SettingsManager
-from capture_tool import CaptureTool
-from hover_tool import HoverTool
+from core.hotkey_manager import CrossPlatformHotkeyManager
+from core.settings_manager import SettingsManager
+from ui.capture_tool import CaptureTool
+from ui.hover_tool import HoverTool
 
 
 class SettingsDialog(QDialog):
@@ -378,13 +378,20 @@ class MainWindow(QMainWindow):
         self.connect_signals()
 
         # 有些UI的文本展示依赖配置，当配置改变后需要更新
-        self.update_ui()
+        self.update_ui_when_config_changed()
 
     def setup_ui(self):
         """初始化用户界面"""
+        init_width, init_height = 1000, 800
         self.setWindowTitle("OCR小工具")
-        self.setGeometry(100, 100, 700, 500)
-        self.setMinimumSize(600, 450)
+        self.setGeometry(100, 100, init_width, init_height)
+        self.setMinimumSize(init_width, init_height)
+
+        # 居中显示窗口
+        qr = self.frameGeometry()
+        cp = QApplication.primaryScreen().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
 
         # 创建中央控件
         central_widget = QWidget()
@@ -779,11 +786,16 @@ class MainWindow(QMainWindow):
         """打开设置对话框"""
         dialog = SettingsDialog(self.settings_manager, self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
-            self.update_ui()
+            self.update_ui_when_config_changed()
             QMessageBox.information(self, "成功", "设置已保存并应用！")
 
-    def update_ui(self):
+    def update_ui_when_config_changed(self):
         self.screenshot_btn.setText(f'截屏识别({self.settings_manager.get_value("capture_shortcuts", "alt+c")})')
+        cmd_path = self.settings_manager.get_value("external_tool_exec_cmd", "")
+        if not cmd_path:
+            self.tool_cmd.setPlaceholderText("输入外部工具命令，使用{text}作为文本占位符")
+        else:
+            self.tool_cmd.setText(f'"{cmd_path}"' + ' "{text}"')
 
     def connect_signals(self):
         """连接组件信号"""
@@ -854,7 +866,6 @@ class MainWindow(QMainWindow):
         hotkey_action.setText(f"设置快捷键 ({self.hotkey})")
 
         self.statusBar().showMessage(f"已设置全局快捷键为: {self.hotkey}", 3000)
-        QMessageBox.information(self, "成功", f"已设置全局快捷键为: {self.hotkey}")
 
     def start_screenshot(self):
         """启动截图OCR功能"""
