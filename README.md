@@ -18,6 +18,7 @@
 + [PaddleOCR, v5版本](https://paddlepaddle.github.io/PaddleOCR/main/quick_start.html)
 
 ## TODO
+- [ ] 调研RapidOCR(PaddleOCR的加速版)
 - [x] 重构热键管理，支持Mac和Windows
 - [ ] 优先保证Windows下功能正常
 - [ ] 验证在MacOS下软件功能是否正常
