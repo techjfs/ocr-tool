@@ -57,7 +57,7 @@ class OCREngine:
             return []
 
         import os
-        ocr_dir = "../ocr_result"
+        ocr_dir = PathConfig.get_ocr_result_path()
         os.makedirs(ocr_dir, exist_ok=True)
         screenshot_path = os.path.join(ocr_dir, "ocr.png")
         image.save(screenshot_path)

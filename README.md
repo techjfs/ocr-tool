@@ -16,9 +16,11 @@
 
 核心技术:
 + [PaddleOCR, v5版本](https://paddlepaddle.github.io/PaddleOCR/main/quick_start.html)
++ [RapidOCR](https://rapidai.github.io/RapidOCRDocs/main/)
 
 ## TODO
 - [ ] 调研RapidOCR(PaddleOCR的加速版)
+- [ ] ocr_engine同时支持PaddleOCR和RapidOCR
 - [x] 重构热键管理，支持Mac和Windows
 - [ ] 优先保证Windows下功能正常
 - [ ] 验证在MacOS下软件功能是否正常

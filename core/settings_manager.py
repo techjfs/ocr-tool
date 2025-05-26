@@ -2,6 +2,7 @@ import sys
 import json
 from pathlib import Path
 from PySide6.QtCore import QSettings
+from util.utils import PathConfig
 
 class SettingsManager:
     # 配置版本和迁移规则
@@ -45,7 +46,7 @@ class SettingsManager:
                     app_dir = Path(sys.executable).parent
                 else:
                     # 如果是直接运行Python脚本
-                    app_dir = Path(__file__).parent
+                    app_dir = PathConfig.project_root
 
                 config_file = app_dir / "config.json"
 
@@ -53,7 +54,7 @@ class SettingsManager:
             self.settings_data = self._load_and_migrate_config()
         else:
             # 使用系统默认存储（注册表/系统配置）
-            self.settings = QSettings("MyCompany", "MyApp")
+            self.settings = QSettings("com.techfs", "OCR-Tool")
             self.settings_data = {}
 
     def _load_and_migrate_config(self):
