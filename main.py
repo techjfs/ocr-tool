@@ -29,71 +29,237 @@ class SettingsDialog(QDialog):
 
     def setup_ui(self):
         main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(0, 0, 0, 0)  # 移除外边距以充分利用空间
+        main_layout.setSpacing(0)
+
+        # 创建顶部标题栏
+        title_widget = QWidget()
+        title_widget.setStyleSheet("""
+            QWidget {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, 
+                           stop:0 #4A90E2, stop:1 #357ABD);
+                color: white;
+                border-bottom: 2px solid #2E5BA8;
+            }
+        """)
+        title_layout = QHBoxLayout(title_widget)
+        title_layout.setContentsMargins(20, 15, 20, 15)
+
+        title_label = QLabel("系统设置")
+        title_label.setStyleSheet("""
+            QLabel {
+                font-size: 18px;
+                font-weight: bold;
+                color: white;
+                background: transparent;
+                border: none;
+            }
+        """)
+        title_layout.addWidget(title_label)
+        title_layout.addStretch()
+
+        # 主要内容区域
+        content_widget = QWidget()
+        content_widget.setStyleSheet("""
+            QWidget {
+                background-color: #F8F9FA;
+            }
+        """)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter.setStyleSheet("""
+            QSplitter::handle {
+                background-color: #E3E8ED;
+                width: 2px;
+            }
+            QSplitter::handle:hover {
+                background-color: #4A90E2;
+            }
+        """)
 
+        # 左侧分类列表 - 增加宽度并美化
         self.category_list = QListWidget()
-        self.category_list.setFixedWidth(100)
+        self.category_list.setFixedWidth(160)  # 增加宽度
+        self.category_list.setStyleSheet("""
+            QListWidget {
+                background-color: white;
+                border: 1px solid #E3E8ED;
+                border-radius: 8px;
+                outline: none;
+                padding: 8px;
+                font-size: 14px;
+            }
+            QListWidget::item {
+                padding: 12px 16px;
+                margin: 2px 0;
+                border-radius: 6px;
+                color: #495057;
+            }
+            QListWidget::item:hover {
+                background-color: #E8F4FD;
+                color: #4A90E2;
+            }
+            QListWidget::item:selected {
+                background-color: #4A90E2;
+                color: white;
+                font-weight: bold;
+            }
+        """)
+
         categories = ["界面设置", "系统设计", "高级设置"]
         self.category_list.addItems(categories)
         self.category_list.currentRowChanged.connect(self.on_category_changed)
 
+        # 右侧设置页面区域
         self.settings_stack = QStackedWidget()
+        self.settings_stack.setStyleSheet("""
+            QStackedWidget {
+                background-color: white;
+                border: 1px solid #E3E8ED;
+                border-radius: 8px;
+                padding: 20px;
+            }
+        """)
 
         self.create_ui_settings_page()
         self.create_system_settings_page()
         self.create_advanced_settings_page()
 
-        splitter.addWidget(self.category_list)
-        splitter.addWidget(self.settings_stack)
-        splitter.setStretchFactor(1, 1)
+        # 左右布局 - 优化比例
+        left_container = QWidget()
+        left_layout = QVBoxLayout(left_container)
+        left_layout.setContentsMargins(15, 15, 8, 15)
+        left_layout.addWidget(self.category_list)
+        left_layout.addStretch()  # 底部留白
 
-        # 底部按钮区域
-        button_layout = QHBoxLayout()
-        button_layout.addStretch()  # 添加弹性空间，使按钮靠右
+        right_container = QWidget()
+        right_layout = QVBoxLayout(right_container)
+        right_layout.setContentsMargins(8, 15, 15, 15)
+        right_layout.addWidget(self.settings_stack)
 
-        self.save_btn = QPushButton("保存设置")
-        self.cancel_btn = QPushButton("取消设置")
+        splitter.addWidget(left_container)
+        splitter.addWidget(right_container)
+        splitter.setStretchFactor(0, 0)  # 左侧固定
+        splitter.setStretchFactor(1, 1)  # 右侧自适应
+
+        # 底部按钮区域 - 重新设计
+        button_container = QWidget()
+        button_container.setStyleSheet("""
+            QWidget {
+                background-color: #F8F9FA;
+                border-top: 1px solid #E3E8ED;
+            }
+        """)
+
+        button_layout = QHBoxLayout(button_container)
+        button_layout.setContentsMargins(20, 15, 20, 15)
+        button_layout.setSpacing(12)
+
+        # 左侧添加版本信息或其他信息
+        info_label = QLabel("版本 1.0.0")
+        info_label.setStyleSheet("""
+            QLabel {
+                color: #6C757D;
+                font-size: 12px;
+                background: transparent;
+            }
+        """)
+        button_layout.addWidget(info_label)
+        button_layout.addStretch()
+
+        # 按钮样式 - 蓝白色调
         self.reset_btn = QPushButton("恢复默认")
+        self.cancel_btn = QPushButton("取消")
+        self.save_btn = QPushButton("保存设置")
 
-        # 设置按钮样式
-        button_style = """
+        # 统一按钮基础样式
+        base_button_style = """
             QPushButton {
-                padding: 8px 16px;
+                padding: 10px 20px;
                 font-size: 14px;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                background-color: #f8f9fa;
+                font-weight: 500;
+                border-radius: 6px;
+                border: 2px solid transparent;
+                min-width: 80px;
             }
-            QPushButton:hover {
-                background-color: #e9ecef;
-            }
-            QPushButton:pressed {
-                background-color: #dee2e6;
+            QPushButton:focus {
+                outline: none;
             }
         """
 
-        self.save_btn.setStyleSheet(
-            button_style + "QPushButton { background-color: #28a745; color: white; border-color: #28a745; }")
-        self.cancel_btn.setStyleSheet(button_style)
-        self.reset_btn.setStyleSheet(
-            button_style + "QPushButton { background-color: #dc3545; color: white; border-color: #dc3545; }")
+        # 恢复默认按钮 - 次要按钮样式
+        self.reset_btn.setStyleSheet(base_button_style + """
+            QPushButton {
+                background-color: white;
+                color: #6C757D;
+                border-color: #E3E8ED;
+            }
+            QPushButton:hover {
+                background-color: #F8F9FA;
+                border-color: #ADB5BD;
+                color: #495057;
+            }
+            QPushButton:pressed {
+                background-color: #E9ECEF;
+            }
+        """)
+
+        # 取消按钮 - 次要按钮样式
+        self.cancel_btn.setStyleSheet(base_button_style + """
+            QPushButton {
+                background-color: white;
+                color: #495057;
+                border-color: #CED4DA;
+            }
+            QPushButton:hover {
+                background-color: #F8F9FA;
+                border-color: #ADB5BD;
+            }
+            QPushButton:pressed {
+                background-color: #E9ECEF;
+            }
+        """)
+
+        # 保存按钮 - 主要按钮样式（蓝色）
+        self.save_btn.setStyleSheet(base_button_style + """
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                           stop:0 #4A90E2, stop:1 #357ABD);
+                color: white;
+                border-color: #357ABD;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                           stop:0 #5BA0F2, stop:1 #4A90E2);
+            }
+            QPushButton:pressed {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                           stop:0 #357ABD, stop:1 #2E5BA8);
+            }
+        """)
 
         # 连接按钮信号
         self.save_btn.clicked.connect(self.accept)
         self.cancel_btn.clicked.connect(self.reject)
         self.reset_btn.clicked.connect(self.reset_to_default)
 
-        button_layout.addWidget(self.save_btn)
-        button_layout.addWidget(self.cancel_btn)
+        # 按钮从右到左排列：保存、取消、恢复默认
         button_layout.addWidget(self.reset_btn)
+        button_layout.addWidget(self.cancel_btn)
+        button_layout.addWidget(self.save_btn)
 
-        main_layout.addWidget(splitter)
-        main_layout.addLayout(button_layout)
+        # 组装主布局
+        main_layout.addWidget(title_widget)
+        main_layout.addWidget(splitter, 1)  # 主要内容区域占据大部分空间
+        main_layout.addWidget(button_container)
 
         self.setLayout(main_layout)
 
+        # 设置初始选择
         self.category_list.setCurrentRow(0)
+
+        # 设置窗口最小尺寸以确保良好显示
+        self.setMinimumSize(800, 600)
 
     def accept(self, /) -> None:
         self.save_settings()
@@ -197,7 +363,7 @@ class MainWindow(QMainWindow):
         self.settings_manager = SettingsManager(use_file_storage=True)
 
         # 设置界面
-        self.init_ui()
+        self.setup_ui()
 
         # 设置热键管理器
         self.setup_hotkey_manager()
@@ -211,79 +377,357 @@ class MainWindow(QMainWindow):
         # 连接信号
         self.connect_signals()
 
-    def init_ui(self):
+        # 有些UI的文本展示依赖配置，当配置改变后需要更新
+        self.update_ui()
+
+    def setup_ui(self):
         """初始化用户界面"""
         self.setWindowTitle("OCR小工具")
-        self.setGeometry(100, 100, 600, 400)
+        self.setGeometry(100, 100, 700, 500)
+        self.setMinimumSize(600, 450)
 
-        # 创建中央控件和布局
+        # 创建中央控件
         central_widget = QWidget()
-        layout = QVBoxLayout()
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
 
-        # 显示配置文件信息
+        # 顶部标题栏
+        title_widget = QWidget()
+        title_widget.setStyleSheet("""
+            QWidget {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, 
+                           stop:0 #4A90E2, stop:1 #357ABD);
+                color: white;
+                border-bottom: 2px solid #2E5BA8;
+            }
+        """)
+        title_layout = QHBoxLayout(title_widget)
+        title_layout.setContentsMargins(20, 12, 20, 12)
+
+        title_label = QLabel("OCR 文字识别工具")
+        title_label.setStyleSheet("""
+            QLabel {
+                font-size: 16px;
+                font-weight: bold;
+                color: white;
+                background: transparent;
+                border: none;
+            }
+        """)
+
+        # 状态指示标签（移到标题栏右侧）
+        self.status_label = QLabel("就绪")
+        self.status_label.setStyleSheet("""
+            QLabel {
+                font-size: 12px;
+                color: #E8F4FD;
+                background: rgba(255, 255, 255, 0.2);
+                padding: 4px 12px;
+                border-radius: 12px;
+                border: 1px solid rgba(255, 255, 255, 0.3);
+            }
+        """)
+
+        title_layout.addWidget(title_label)
+        title_layout.addStretch()
+        title_layout.addWidget(self.status_label)
+
+        # 主要内容区域
+        content_widget = QWidget()
+        content_widget.setStyleSheet("""
+            QWidget {
+                background-color: #F8F9FA;
+            }
+        """)
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setContentsMargins(20, 20, 20, 20)
+        content_layout.setSpacing(20)
+
+        # 配置文件信息卡片
         config_info = self.settings_manager.get_config_info()
         config_info_text = f"配置文件: {config_info['path']}\n版本: {config_info['version']}"
         if config_info.get('size'):
             config_info_text += f" | 大小: {config_info['size']} bytes"
 
+        config_card = QWidget()
+        config_card.setStyleSheet("""
+            QWidget {
+                background-color: white;
+                border: 1px solid #E3E8ED;
+                border-radius: 8px;
+                padding: 12px;
+            }
+        """)
+        config_layout = QVBoxLayout(config_card)
+        config_layout.setContentsMargins(15, 12, 15, 12)
+
         config_path_label = QLabel(config_info_text)
         config_path_label.setWordWrap(True)
-        config_path_label.setStyleSheet("color: #666; font-size: 10px; margin-bottom: 10px;")
-        layout.addWidget(config_path_label)
+        config_path_label.setStyleSheet("""
+            QLabel {
+                color: #6C757D;
+                font-size: 11px;
+                background: transparent;
+                border: none;
+                line-height: 1.4;
+            }
+        """)
+        config_layout.addWidget(config_path_label)
 
-        # 状态指示标签
-        self.status_label = QLabel("就绪")
-        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.status_label.setStyleSheet("font-weight: bold; color: green;")
+        # 功能按钮区域
+        button_group = QWidget()
+        button_group.setStyleSheet("""
+            QWidget {
+                background-color: white;
+                border: 1px solid #E3E8ED;
+                border-radius: 8px;
+            }
+        """)
+        button_group_layout = QVBoxLayout(button_group)
+        button_group_layout.setContentsMargins(20, 20, 20, 20)
+        button_group_layout.setSpacing(15)
+
+        # 标题
+        button_title = QLabel("功能操作")
+        button_title.setStyleSheet("""
+            QLabel {
+                font-size: 14px;
+                font-weight: bold;
+                color: #495057;
+                background: transparent;
+                border: none;
+                margin-bottom: 5px;
+            }
+        """)
+        button_group_layout.addWidget(button_title)
+
+        # 按钮样式定义
+        primary_button_style = """
+            QPushButton {
+                padding: 12px 20px;
+                font-size: 14px;
+                font-weight: 500;
+                border-radius: 6px;
+                border: 2px solid transparent;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                           stop:0 #4A90E2, stop:1 #357ABD);
+                color: white;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                           stop:0 #5BA0F2, stop:1 #4A90E2);
+            }
+            QPushButton:pressed {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                           stop:0 #357ABD, stop:1 #2E5BA8);
+            }
+            QPushButton:focus {
+                outline: none;
+            }
+        """
+
+        secondary_button_style = """
+            QPushButton {
+                padding: 12px 20px;
+                font-size: 14px;
+                font-weight: 500;
+                border-radius: 6px;
+                background-color: white;
+                color: #495057;
+                border: 2px solid #CED4DA;
+            }
+            QPushButton:hover {
+                background-color: #F8F9FA;
+                border-color: #4A90E2;
+                color: #4A90E2;
+            }
+            QPushButton:pressed {
+                background-color: #E9ECEF;
+            }
+            QPushButton:checked {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                           stop:0 #4A90E2, stop:1 #357ABD);
+                color: white;
+                border-color: #357ABD;
+            }
+            QPushButton:focus {
+                outline: none;
+            }
+        """
 
         # 创建功能按钮
-        self.screenshot_btn = QPushButton("截屏识别", self)
+        self.screenshot_btn = QPushButton("📷 截屏识别")
+        self.screenshot_btn.setStyleSheet(primary_button_style)
         self.screenshot_btn.clicked.connect(self.start_screenshot)
 
-        self.hover_btn = QPushButton("启用悬停取词", self)
+        self.hover_btn = QPushButton("🖱️ 启用悬停取词")
         self.hover_btn.setCheckable(True)
+        self.hover_btn.setStyleSheet(secondary_button_style)
         self.hover_btn.clicked.connect(self.toggle_hover_mode)
 
-
-        self.settings_button = QPushButton("设置", self)
+        self.settings_button = QPushButton("⚙️ 设置")
+        self.settings_button.setStyleSheet(secondary_button_style)
         self.settings_button.clicked.connect(self.open_settings)
 
+        # 按钮布局
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(12)
+        button_layout.addWidget(self.screenshot_btn)
+        button_layout.addWidget(self.hover_btn)
+        button_layout.addWidget(self.settings_button)
+        button_layout.addStretch()
+
+        button_group_layout.addLayout(button_layout)
+
         # 结果显示区域
+        result_group = QWidget()
+        result_group.setStyleSheet("""
+            QWidget {
+                background-color: white;
+                border: 1px solid #E3E8ED;
+                border-radius: 8px;
+            }
+        """)
+        result_layout = QVBoxLayout(result_group)
+        result_layout.setContentsMargins(20, 20, 20, 20)
+        result_layout.setSpacing(12)
+
+        result_title = QLabel("识别结果")
+        result_title.setStyleSheet("""
+            QLabel {
+                font-size: 14px;
+                font-weight: bold;
+                color: #495057;
+                background: transparent;
+                border: none;
+            }
+        """)
+
         self.result_text = QTextEdit()
         self.result_text.setReadOnly(True)
+        self.result_text.setStyleSheet("""
+            QTextEdit {
+                border: 1px solid #E3E8ED;
+                border-radius: 6px;
+                padding: 12px;
+                font-size: 13px;
+                background-color: #FAFBFC;
+                color: #495057;
+                selection-background-color: #4A90E2;
+            }
+            QTextEdit:focus {
+                border-color: #4A90E2;
+                outline: none;
+            }
+        """)
 
-        # 外部工具命令输入
+        result_layout.addWidget(result_title)
+        result_layout.addWidget(self.result_text)
+
+        # 外部工具区域
+        tool_group = QWidget()
+        tool_group.setStyleSheet("""
+            QWidget {
+                background-color: white;
+                border: 1px solid #E3E8ED;
+                border-radius: 8px;
+            }
+        """)
+        tool_layout = QVBoxLayout(tool_group)
+        tool_layout.setContentsMargins(20, 20, 20, 20)
+        tool_layout.setSpacing(12)
+
+        tool_title = QLabel("外部工具集成")
+        tool_title.setStyleSheet("""
+            QLabel {
+                font-size: 14px;
+                font-weight: bold;
+                color: #495057;
+                background: transparent;
+                border: none;
+            }
+        """)
+
         self.tool_cmd = QLineEdit()
         cmd_path = self.settings_manager.get_value("external_tool_exec_cmd", "")
         if not cmd_path:
             self.tool_cmd.setPlaceholderText("输入外部工具命令，使用{text}作为文本占位符")
         else:
-            self.tool_cmd.setText(f'"{cmd_path}"' +  ' "{text}"')
+            self.tool_cmd.setText(f'"{cmd_path}"' + ' "{text}"')
 
-        self.run_tool_btn = QPushButton("检查可否正常调用外部工具")
+        self.tool_cmd.setStyleSheet("""
+            QLineEdit {
+                padding: 10px;
+                font-size: 13px;
+                border: 1px solid #CED4DA;
+                border-radius: 6px;
+                background-color: white;
+                color: #495057;
+            }
+            QLineEdit:focus {
+                border-color: #4A90E2;
+                outline: none;
+            }
+            QLineEdit::placeholder {
+                color: #ADB5BD;
+            }
+        """)
+
+        self.run_tool_btn = QPushButton("🔧 检查外部工具调用")
+        self.run_tool_btn.setStyleSheet(secondary_button_style)
         self.run_tool_btn.clicked.connect(self.check_external_tool_call)
 
-        # 最小化按钮
-        minimize_btn = QPushButton("最小化到托盘", self)
+        tool_layout.addWidget(tool_title)
+        tool_layout.addWidget(self.tool_cmd)
+        tool_layout.addWidget(self.run_tool_btn)
+
+        # 组装内容区域
+        content_layout.addWidget(config_card)
+        content_layout.addWidget(button_group)
+        content_layout.addWidget(result_group, 1)  # 结果区域占据剩余空间
+        content_layout.addWidget(tool_group)
+
+        # 底部工具栏
+        bottom_toolbar = QWidget()
+        bottom_toolbar.setStyleSheet("""
+            QWidget {
+                background-color: #F8F9FA;
+                border-top: 1px solid #E3E8ED;
+            }
+        """)
+        bottom_layout = QHBoxLayout(bottom_toolbar)
+        bottom_layout.setContentsMargins(20, 12, 20, 12)
+
+        minimize_btn = QPushButton("📥 最小化到托盘")
+        minimize_btn.setStyleSheet("""
+            QPushButton {
+                padding: 8px 16px;
+                font-size: 12px;
+                border-radius: 4px;
+                background-color: transparent;
+                color: #6C757D;
+                border: 1px solid transparent;
+            }
+            QPushButton:hover {
+                background-color: #E9ECEF;
+                color: #495057;
+            }
+            QPushButton:pressed {
+                background-color: #DEE2E6;
+            }
+        """)
         minimize_btn.clicked.connect(self.hide_window)
 
-        # 添加组件到布局
-        layout.addWidget(self.status_label)
+        bottom_layout.addStretch()
+        bottom_layout.addWidget(minimize_btn)
 
-        button_layout = QHBoxLayout()
-        button_layout.addWidget(self.screenshot_btn)
-        button_layout.addWidget(self.hover_btn)
-        button_layout.addWidget(self.settings_button)
-        layout.addLayout(button_layout)
+        # 组装主布局
+        main_layout.addWidget(title_widget)
+        main_layout.addWidget(content_widget, 1)
+        main_layout.addWidget(bottom_toolbar)
 
-        layout.addWidget(QLabel("识别结果:"))
-        layout.addWidget(self.result_text)
-        layout.addWidget(QLabel("外部工具命令:"))
-        layout.addWidget(self.tool_cmd)
-        layout.addWidget(self.run_tool_btn)
-        layout.addWidget(minimize_btn)
-
-        central_widget.setLayout(layout)
+        central_widget.setLayout(main_layout)
         self.setCentralWidget(central_widget)
 
     def setup_hotkey_manager(self):
@@ -335,7 +779,11 @@ class MainWindow(QMainWindow):
         """打开设置对话框"""
         dialog = SettingsDialog(self.settings_manager, self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.update_ui()
             QMessageBox.information(self, "成功", "设置已保存并应用！")
+
+    def update_ui(self):
+        self.screenshot_btn.setText(f'截屏识别({self.settings_manager.get_value("capture_shortcuts", "alt+c")})')
 
     def connect_signals(self):
         """连接组件信号"""

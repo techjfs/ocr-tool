@@ -13,7 +13,6 @@
 注意:
 1. 支持跨平台使用，Windows系统和MacOS系统
 2. MacOS有自己的一套OCR技术，可参考[Shortcuts.app & Apple's OCR](https://xiaoyifang.github.io/goldendict-ng/howto/ocr/#shortcutsapp-apples-ocr)
-3. 由于自己电脑配置低，默认使用的是CPU版本的PaddleOCR测试功能，未来有可能的话会尝试GPU版本
 
 核心技术:
 + [PaddleOCR, v5版本](https://paddlepaddle.github.io/PaddleOCR/main/quick_start.html)
@@ -27,6 +26,7 @@
 - [ ] 将部分参数配置化
 - [ ] GUI美化，保持界面风格一致
 - [ ] 如果OCR取词出现同分数，考虑是否返回多个，让用户决定
+- [ ] 默认使用的是CPU版本的PaddleOCR测试功能，未来有可能的话会尝试GPU版本(不紧急不重要)
 
 ## 安装依赖
 ```bash
