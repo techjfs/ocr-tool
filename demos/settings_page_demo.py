@@ -1,11 +1,10 @@
 import sys
 from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
                                QListWidget, QStackedWidget, QFormLayout, QLabel,
-                               QPushButton, QLineEdit, QComboBox, QCheckBox, QSpinBox,
-                               QSlider, QColorDialog, QFileDialog, QGroupBox, QTextEdit,
-                               QMessageBox, QSplitter, QFrame)
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QFont, QColor
+                               QPushButton, QComboBox, QCheckBox, QSpinBox,
+                               QSlider, QColorDialog, QFileDialog, QGroupBox,
+                               QMessageBox, QSplitter)
+from PySide6.QtCore import Qt
 
 
 class SettingsPage(QWidget):

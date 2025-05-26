@@ -3,10 +3,10 @@ import os
 import subprocess
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                                QHBoxLayout, QPushButton, QLabel, QTextEdit,
-                               QLineEdit, QSystemTrayIcon, QMenu, QMessageBox,
-                               QDialog, QFormLayout)
+                               QLineEdit, QSystemTrayIcon, QMenu, QMessageBox, QFormLayout,
+                               QDialog, QSplitter, QListWidget, QStackedWidget, QFileDialog)
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QIcon, QGuiApplication
+from PySide6.QtGui import QIcon
 
 from hotkey_manager import CrossPlatformHotkeyManager
 from settings_manager import SettingsManager
@@ -14,43 +14,13 @@ from capture_tool import CaptureTool
 from hover_tool import HoverTool
 
 
-class HotkeySettingDialog(QDialog):
-    """设置全局快捷键对话框"""
-
-    def __init__(self, parent=None, current_hotkey="alt+c"):
-        super().__init__(parent)
-        self.setWindowTitle("设置全局快捷键")
-        self.setFixedSize(300, 100)
-
-        layout = QVBoxLayout()
-        self.hotkey_input = QLineEdit(current_hotkey)
-        self.hotkey_input.setPlaceholderText("例如: alt+c")
-
-        button_layout = QHBoxLayout()
-        save_btn = QPushButton("保存")
-        save_btn.clicked.connect(self.accept)
-        cancel_btn = QPushButton("取消")
-        cancel_btn.clicked.connect(self.reject)
-
-        button_layout.addWidget(save_btn)
-        button_layout.addWidget(cancel_btn)
-
-        layout.addWidget(QLabel("全局快捷键:"))
-        layout.addWidget(self.hotkey_input)
-        layout.addLayout(button_layout)
-
-        self.setLayout(layout)
-
-    def get_hotkey(self):
-        return self.hotkey_input.text()
-
 class SettingsDialog(QDialog):
     """设置对话框"""
 
     def __init__(self, settings_manager, parent=None):
         super().__init__(parent)
         self.settings_manager = settings_manager
-        self.setWindowTitle("应用设置")
+        self.setWindowTitle("设置")
         self.setModal(True)
         self.resize(400, 300)
 
@@ -58,140 +28,159 @@ class SettingsDialog(QDialog):
         self.load_settings()
 
     def setup_ui(self):
+        main_layout = QVBoxLayout()
+
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+
+        self.category_list = QListWidget()
+        self.category_list.setFixedWidth(100)
+        categories = ["界面设置", "系统设计", "高级设置"]
+        self.category_list.addItems(categories)
+        self.category_list.currentRowChanged.connect(self.on_category_changed)
+
+        self.settings_stack = QStackedWidget()
+
+        self.create_ui_settings_page()
+        self.create_system_settings_page()
+        self.create_advanced_settings_page()
+
+        splitter.addWidget(self.category_list)
+        splitter.addWidget(self.settings_stack)
+        splitter.setStretchFactor(1, 1)
+
+        # 底部按钮区域
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()  # 添加弹性空间，使按钮靠右
+
+        self.save_btn = QPushButton("保存设置")
+        self.cancel_btn = QPushButton("取消设置")
+        self.reset_btn = QPushButton("恢复默认")
+
+        # 设置按钮样式
+        button_style = """
+            QPushButton {
+                padding: 8px 16px;
+                font-size: 14px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                background-color: #f8f9fa;
+            }
+            QPushButton:hover {
+                background-color: #e9ecef;
+            }
+            QPushButton:pressed {
+                background-color: #dee2e6;
+            }
+        """
+
+        self.save_btn.setStyleSheet(
+            button_style + "QPushButton { background-color: #28a745; color: white; border-color: #28a745; }")
+        self.cancel_btn.setStyleSheet(button_style)
+        self.reset_btn.setStyleSheet(
+            button_style + "QPushButton { background-color: #dc3545; color: white; border-color: #dc3545; }")
+
+        # 连接按钮信号
+        self.save_btn.clicked.connect(self.accept)
+        self.cancel_btn.clicked.connect(self.reject)
+        self.reset_btn.clicked.connect(self.reset_to_default)
+
+        button_layout.addWidget(self.save_btn)
+        button_layout.addWidget(self.cancel_btn)
+        button_layout.addWidget(self.reset_btn)
+
+        main_layout.addWidget(splitter)
+        main_layout.addLayout(button_layout)
+
+        self.setLayout(main_layout)
+
+        self.category_list.setCurrentRow(0)
+
+    def accept(self, /) -> None:
+        self.save_settings()
+        self.parent().setup_hotkey()
+        super().accept()
+
+    def on_category_changed(self, index):
+        self.settings_stack.setCurrentIndex(index)
+
+    def create_ui_settings_page(self):
+        page = QWidget()
         layout = QVBoxLayout()
 
-        # 创建表单布局
+        todo_label = QLabel("待完善")
+        layout.addWidget(todo_label)
+
+        page.setLayout(layout)
+        self.settings_stack.addWidget(page)
+
+    def create_system_settings_page(self):
+        page = QWidget()
         form_layout = QFormLayout()
 
-        # 用户名设置
-        self.username_edit = QLineEdit()
-        form_layout.addRow("用户名:", self.username_edit)
+        self.hotkey_input = QLineEdit("")
+        self.hotkey_input.setPlaceholderText("例如: alt+c")
 
-        # 自动保存间隔
-        self.autosave_spinbox = QSpinBox()
-        self.autosave_spinbox.setRange(1, 60)
-        self.autosave_spinbox.setSuffix(" 分钟")
-        form_layout.addRow("自动保存间隔:", self.autosave_spinbox)
+        form_layout.addRow("设置快捷键:", self.hotkey_input)
 
-        # 启用通知
-        self.notification_checkbox = QCheckBox()
-        form_layout.addRow("启用通知:", self.notification_checkbox)
+        self.file_path_label = QLabel("未选择文件")
+        self.file_path_label.setStyleSheet("border: 1px solid gray; padding: 5px;")
+        self.file_path_label.setMinimumHeight(30)
 
-        # 主题选择
-        self.theme_combo = QComboBox()
-        self.theme_combo.addItems(["浅色", "深色", "系统默认"])
-        form_layout.addRow("主题:", self.theme_combo)
+        # 创建打开文件对话框的按钮
+        self.open_file_btn = QPushButton("选择文件")
+        self.open_file_btn.clicked.connect(self.open_file_dialog)
 
-        # 语言选择
-        self.language_combo = QComboBox()
-        self.language_combo.addItems(["中文", "English", "日本語"])
-        form_layout.addRow("语言:", self.language_combo)
+        # 将按钮和标签添加到表单布局
+        form_layout.addRow("选择文件:", self.open_file_btn)
+        form_layout.addRow("文件路径:", self.file_path_label)
 
-        layout.addLayout(form_layout)
 
-        # 字体和颜色设置
-        font_color_layout = QHBoxLayout()
+        page.setLayout(form_layout)
+        self.settings_stack.addWidget(page)
 
-        self.font_button = QPushButton("选择字体")
-        self.font_button.clicked.connect(self.choose_font)
-        font_color_layout.addWidget(self.font_button)
-
-        self.color_button = QPushButton("选择颜色")
-        self.color_button.clicked.connect(self.choose_color)
-        font_color_layout.addWidget(self.color_button)
-
-        layout.addLayout(font_color_layout)
-
-        # 按钮
-        button_box = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.RestoreDefaults
+    def open_file_dialog(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "选择文件",
+            "",
+            "所有文件 (*);;可执行文件 (*.exe)"
         )
-        button_box.accepted.connect(self.accept)
-        button_box.rejected.connect(self.reject)
-        button_box.button(QDialogButtonBox.StandardButton.RestoreDefaults).clicked.connect(self.restore_defaults)
+        if file_path:
+            self.file_path_label.setText(file_path)
+            self.file_path_label.setToolTip(file_path)
 
-        layout.addWidget(button_box)
+    def create_advanced_settings_page(self):
+        page = QWidget()
+        layout = QVBoxLayout()
 
-        self.setLayout(layout)
+        todo_label = QLabel("待完善")
+        layout.addWidget(todo_label)
 
-        # 用于存储选择的字体和颜色
-        self.selected_font = None
-        self.selected_color = None
+        page.setLayout(layout)
+        self.settings_stack.addWidget(page)
 
     def load_settings(self):
         """从设置中加载当前值"""
-        self.username_edit.setText(self.settings_manager.get_value("username", ""))
-        self.autosave_spinbox.setValue(int(self.settings_manager.get_value("autosave_interval", 5)))
-        self.notification_checkbox.setChecked(
-            self.settings_manager.get_value("enable_notifications", True, type=bool)
-        )
-        self.theme_combo.setCurrentText(self.settings_manager.get_value("theme", "浅色"))
-        self.language_combo.setCurrentText(self.settings_manager.get_value("language", "中文"))
-
-        # 加载字体设置
-        font_family = self.settings_manager.get_value("font_family", "Arial")
-        font_size = int(self.settings_manager.get_value("font_size", 12))
-        self.selected_font = QFont(font_family, font_size)
-
-        # 加载颜色设置
-        color_name = self.settings_manager.get_value("color", "#000000")
-        self.selected_color = QColor(color_name)
-
-    def choose_font(self):
-        """选择字体"""
-        ok, font = QFontDialog.getFont(self.selected_font or QFont(), self)
-        if ok:
-            self.selected_font = font
-            self.font_button.setText(f"字体: {font.family()}, {font.pointSize()}pt")
-
-    def choose_color(self):
-        """选择颜色"""
-        color = QColorDialog.getColor(self.selected_color or QColor(), self)
-        if color.isValid():
-            self.selected_color = color
-            # 更新按钮背景色以显示选择的颜色
-            self.color_button.setStyleSheet(f"background-color: {color.name()}")
-
-    def restore_defaults(self):
-        """恢复默认设置"""
-        reply = QMessageBox.question(
-            self, "确认", "确定要恢复默认设置吗？",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-
-        if reply == QMessageBox.StandardButton.Yes:
-            self.username_edit.setText("")
-            self.autosave_spinbox.setValue(5)
-            self.notification_checkbox.setChecked(True)
-            self.theme_combo.setCurrentText("浅色")
-            self.language_combo.setCurrentText("中文")
-            self.selected_font = QFont("Arial", 12)
-            self.selected_color = QColor("#000000")
-            self.font_button.setText("选择字体")
-            self.color_button.setStyleSheet("")
-
-    def accept(self):
-        """保存设置"""
-        self.save_settings()
-        super().accept()
+        self.file_path_label.setText(self.settings_manager.get_value("external_tool_exec_cmd", ""))
+        self.hotkey_input.setText(self.settings_manager.get_value("capture_shortcuts", "alt+c"))
 
     def save_settings(self):
         """保存所有设置"""
-        self.settings_manager.set_value("username", self.username_edit.text())
-        self.settings_manager.set_value("autosave_interval", self.autosave_spinbox.value())
-        self.settings_manager.set_value("enable_notifications", self.notification_checkbox.isChecked())
-        self.settings_manager.set_value("theme", self.theme_combo.currentText())
-        self.settings_manager.set_value("language", self.language_combo.currentText())
-
-        if self.selected_font:
-            self.settings_manager.set_value("font_family", self.selected_font.family())
-            self.settings_manager.set_value("font_size", self.selected_font.pointSize())
-
-        if self.selected_color:
-            self.settings_manager.set_value("color", self.selected_color.name())
-
+        self.settings_manager.set_value("external_tool_exec_cmd", self.file_path_label.text())
+        self.settings_manager.set_value("capture_shortcuts", self.hotkey_input.text())
         # 强制同步到磁盘
         self.settings_manager.sync()
+
+    def reset_to_default(self):
+        """恢复默认设置"""
+        reply = QMessageBox.question(self, "确认", "确定要恢复到默认设置吗？这将丢失所有自定义设置。",
+                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                                     QMessageBox.StandardButton.No)
+        if reply == QMessageBox.StandardButton.Yes:
+            self.settings_manager.reset_to_defaults()
+            self.load_settings()
+            QMessageBox.information(self, "设置", "已恢复到默认设置！")
+
 
 class MainWindow(QMainWindow):
     """OCR工具主窗口"""
@@ -255,8 +244,6 @@ class MainWindow(QMainWindow):
         self.hover_btn.setCheckable(True)
         self.hover_btn.clicked.connect(self.toggle_hover_mode)
 
-        self.hotkey_btn = QPushButton(f"设置快捷键 ({self.hotkey})", self)
-        self.hotkey_btn.clicked.connect(self.setup_hotkey)
 
         self.settings_button = QPushButton("设置", self)
         self.settings_button.clicked.connect(self.open_settings)
@@ -267,7 +254,11 @@ class MainWindow(QMainWindow):
 
         # 外部工具命令输入
         self.tool_cmd = QLineEdit()
-        self.tool_cmd.setPlaceholderText("输入外部工具命令，使用{text}作为文本占位符")
+        cmd_path = self.settings_manager.get_value("external_tool_exec_cmd", "")
+        if not cmd_path:
+            self.tool_cmd.setPlaceholderText("输入外部工具命令，使用{text}作为文本占位符")
+        else:
+            self.tool_cmd.setText(f'"{cmd_path}"' +  ' "{text}"')
 
         self.run_tool_btn = QPushButton("检查可否正常调用外部工具")
         self.run_tool_btn.clicked.connect(self.check_external_tool_call)
@@ -282,7 +273,7 @@ class MainWindow(QMainWindow):
         button_layout = QHBoxLayout()
         button_layout.addWidget(self.screenshot_btn)
         button_layout.addWidget(self.hover_btn)
-        button_layout.addWidget(self.hotkey_btn)
+        button_layout.addWidget(self.settings_button)
         layout.addLayout(button_layout)
 
         layout.addWidget(QLabel("识别结果:"))
@@ -331,9 +322,6 @@ class MainWindow(QMainWindow):
         hover_action = tray_menu.addAction("悬停取词")
         hover_action.triggered.connect(self.hover_tool.capture_at_cursor)
 
-        hotkey_action = tray_menu.addAction(f"设置快捷键 ({self.hotkey})")
-        hotkey_action.triggered.connect(self.setup_hotkey)
-
         tray_menu.addSeparator()
 
         quit_action = tray_menu.addAction("退出")
@@ -347,11 +335,7 @@ class MainWindow(QMainWindow):
         """打开设置对话框"""
         dialog = SettingsDialog(self.settings_manager, self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
-            self.apply_settings()
             QMessageBox.information(self, "成功", "设置已保存并应用！")
-
-    def apply_settings(self):
-        pass
 
     def connect_signals(self):
         """连接组件信号"""
@@ -413,19 +397,16 @@ class MainWindow(QMainWindow):
 
     def setup_hotkey(self):
         """设置全局快捷键"""
-        dialog = HotkeySettingDialog(self, self.hotkey)
-        if dialog.exec():
-            new_hotkey = dialog.get_hotkey()
-            self.hotkey = new_hotkey
-            self.hotkey_btn.setText(f"设置快捷键 ({self.hotkey})")
-            self.setup_hotkey_manager()
+        new_hotkey = self.settings_manager.get_value("capture_shortcuts", "alt+c")
+        self.hotkey = new_hotkey
+        self.setup_hotkey_manager()
 
-            # 更新托盘菜单
-            hotkey_action = self.tray_icon.contextMenu().actions()[3]  # 索引3是热键设置菜单项
-            hotkey_action.setText(f"设置快捷键 ({self.hotkey})")
+        # 更新托盘菜单
+        hotkey_action = self.tray_icon.contextMenu().actions()[3]  # 索引3是热键设置菜单项
+        hotkey_action.setText(f"设置快捷键 ({self.hotkey})")
 
-            self.statusBar().showMessage(f"已设置全局快捷键为: {self.hotkey}", 3000)
-            QMessageBox.information(self, "成功", f"已设置全局快捷键为: {self.hotkey}")
+        self.statusBar().showMessage(f"已设置全局快捷键为: {self.hotkey}", 3000)
+        QMessageBox.information(self, "成功", f"已设置全局快捷键为: {self.hotkey}")
 
     def start_screenshot(self):
         """启动截图OCR功能"""

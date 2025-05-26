@@ -29,7 +29,8 @@ class SettingsManager:
     # 默认配置
     DEFAULT_CONFIG = {
         "config_version": CURRENT_CONFIG_VERSION,
-        "external_tool_exec_cmd": ""
+        "external_tool_exec_cmd": "",
+        "capture_shortcuts": "alt+c",
     }
 
     def __init__(self, config_file=None, use_file_storage=True):
