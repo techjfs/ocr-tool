@@ -20,9 +20,13 @@ class OCREngine:
 
     def __init__(self):
         self.ocr = RapidOCR(params={
+            "Global.with_onnx": True,
             "Global.lang_det": "ch_mobile",
             "Global.lang_rec": "ch_mobile",
-            "Global.with_onnx": True,
+            "Det.model_path": PathConfig.get_model_path("ch_PP-OCRv4_det_infer.onnx"),
+            "Cls.model_path": PathConfig.get_model_path("ch_ppocr_mobile_v2.0_cls_infer.onnx"),
+            "Rec.model_path": PathConfig.get_model_path("ch_PP-OCRv4_rec_infer.onnx"),
+            "Global.font_path": PathConfig.models_dir / "FZYTK.TTF"
         })
 
     def is_english_only(self, text_list):

@@ -5,7 +5,7 @@ from pathlib import Path
 
 class PathConfig:
     project_root = Path(__file__).resolve().parent.parent
-    models_dir = project_root / "_internal" / "official_models"
+    models_dir = project_root / "_internal" / "models"
 
     @staticmethod
     def get_model_path(model_name):
