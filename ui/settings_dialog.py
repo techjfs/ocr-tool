@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
                                QListWidget, QStackedWidget, QFileDialog,
                                QWidget, QMessageBox)
 from PySide6.QtCore import Qt
-
+import subprocess
 from ui.theme import default_stylesheet
 
 
@@ -196,17 +196,42 @@ class SettingsDialog(QDialog):
         self.hotkey_input.setStyleSheet(self.stylesheet.get_line_edit_style())
         form_layout.addRow("设置快捷键:", self.hotkey_input)
 
-        # 文件选择
-        self.file_path_label = QLabel("未选择文件")
-        self.file_path_label.setStyleSheet(self.stylesheet.get_file_path_label_style())
-        self.file_path_label.setMinimumHeight(30)
+        # 选择外部工具
+        choose_tool_layout = QHBoxLayout()
 
-        self.open_file_btn = QPushButton("选择文件")
-        self.open_file_btn.setStyleSheet(self.stylesheet.get_secondary_button_style())
-        self.open_file_btn.clicked.connect(self.open_file_dialog)
+        self.tool_path_label = QLabel("未选择外部工具")
+        self.tool_path_label.setStyleSheet(self.stylesheet.get_base_label_style())
+        self.tool_path_label.setMinimumHeight(30)
 
-        form_layout.addRow("选择文件:", self.open_file_btn)
-        form_layout.addRow("文件路径:", self.file_path_label)
+        self.open_tool_button = QPushButton("选择外部工具")
+        self.open_tool_button.setStyleSheet(self.stylesheet.get_secondary_button_style())
+        self.open_tool_button.clicked.connect(self.open_file_dialog)
+
+        choose_tool_layout.addWidget(self.tool_path_label)
+        choose_tool_layout.addWidget(self.open_tool_button)
+
+        self.tool_param_input = QLineEdit('"{text}"')
+        self.tool_param_input.setStyleSheet(self.stylesheet.get_line_edit_style())
+        self.tool_param_input.textChanged.connect(self.on_tool_param_input_changed)
+
+        # 检查外部工具
+        check_info_layout = QHBoxLayout()
+
+        self.check_info_label = QLabel("")
+        self.check_info_label.setStyleSheet(self.stylesheet.get_base_label_style())
+        self.check_info_label.setMinimumHeight(30)
+
+        self.check_tool_button = QPushButton("检查外部工具")
+        self.check_tool_button.setStyleSheet(self.stylesheet.get_primary_button_style())
+        self.check_tool_button.clicked.connect(self.check_tool_call)
+
+        check_info_layout.addWidget(self.check_info_label)
+        check_info_layout.addWidget(self.check_tool_button)
+
+
+        form_layout.addRow("外部工具:", choose_tool_layout)
+        form_layout.addRow("外部工具参数:", self.tool_param_input)
+        form_layout.addRow(check_info_layout)
 
         page.setLayout(form_layout)
         self.settings_stack.addWidget(page)
@@ -227,23 +252,52 @@ class SettingsDialog(QDialog):
         """分类改变事件"""
         self.settings_stack.setCurrentIndex(index)
 
+    def on_tool_param_input_changed(self):
+        self.update_check_tool_text()
+
+    def check_tool_call(self):
+        cmd = self.check_info_label.text()
+        if not cmd:
+            QMessageBox.warning(self, "错误", "请输入外部工具命令")
+            return False
+
+        try:
+            test_command = cmd.replace("{text}", "hello")
+            subprocess.Popen(test_command, shell=True)
+
+            QMessageBox.information(self, "成功", "外部工具命令设置成功")
+            return True
+        except Exception as e:
+            QMessageBox.critical(self, "错误", f"命令格式错误: {str(e)}")
+            return False
+
     def open_file_dialog(self):
         """打开文件对话框"""
         file_path, _ = QFileDialog.getOpenFileName(
             self,
             "选择文件",
             "",
-            "所有文件 (*);;可执行文件 (*.exe)"
+            "可执行文件 (*.exe);;其他可执行文件 (*)"
         )
         if file_path:
-            self.file_path_label.setText(file_path)
-            self.file_path_label.setToolTip(file_path)
+            self.tool_path_label.setText(file_path)
+            self.tool_path_label.setToolTip(file_path)
+            self.update_check_tool_text()
+
+    def update_check_tool_text(self):
+        tool_path = self.tool_path_label.text()
+        tool_param = self.tool_param_input.text()
+        self.check_info_label.setText(f'"{tool_path}" {tool_param}')
 
     def load_settings(self):
         """从设置中加载当前值"""
-        self.file_path_label.setText(
-            self.settings_manager.get_value("external_tool_exec_cmd", "")
-        )
+        cmd = self.settings_manager.get_value("external_tool_exec_cmd", "")
+        if cmd:
+            self.check_info_label.setText(cmd)
+            self.tool_path_label.setText(cmd.split('"')[1])
+        else:
+            self.check_info_label.setText("")
+            self.tool_path_label.setText("")
         self.hotkey_input.setText(
             self.settings_manager.get_value("capture_shortcuts", "alt+c")
         )
@@ -252,7 +306,7 @@ class SettingsDialog(QDialog):
         """保存所有设置"""
         self.settings_manager.set_value(
             "external_tool_exec_cmd",
-            self.file_path_label.text()
+            self.check_info_label.text()
         )
         self.settings_manager.set_value(
             "capture_shortcuts",

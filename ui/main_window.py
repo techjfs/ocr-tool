@@ -21,7 +21,6 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.tray_notified = False
-        self.has_external_tool = False
         self.stylesheet = default_stylesheet
 
         self.capture_tool = CaptureTool()
@@ -29,6 +28,7 @@ class MainWindow(QMainWindow):
         self.settings_manager = SettingsManager(use_file_storage=True)
 
         self.hotkey = self.settings_manager.get_value("capture_shortcuts", "alt+c")
+        self.has_external_tool = bool(self.settings_manager.get_value("external_tool_exec_cmd", ""))
 
         # 设置界面
         self.setup_ui()
@@ -170,22 +170,17 @@ class MainWindow(QMainWindow):
         tool_title = QLabel("外部工具集成")
         tool_title.setStyleSheet(self.stylesheet.get_section_title_style(14))
 
-        self.tool_cmd = QLineEdit()
-        cmd_path = self.settings_manager.get_value("external_tool_exec_cmd", "")
-        if not cmd_path:
-            self.tool_cmd.setPlaceholderText("输入外部工具命令，使用{text}作为文本占位符")
+        self.tool_cmd = QLabel()
+        cmd = self.settings_manager.get_value("external_tool_exec_cmd", "")
+        if not cmd:
+            self.tool_cmd.setText("在设置中配置外部工具后再使用OCR功能")
         else:
-            self.tool_cmd.setText(f'"{cmd_path}"' + ' "{text}"')
+            self.tool_cmd.setText(cmd)
 
-        self.tool_cmd.setStyleSheet(self.stylesheet.get_line_edit_style())
-
-        self.run_tool_btn = QPushButton("🔧 检查外部工具调用")
-        self.run_tool_btn.setStyleSheet(self.stylesheet.get_secondary_button_style())
-        self.run_tool_btn.clicked.connect(self.check_external_tool_call)
+        self.tool_cmd.setStyleSheet(self.stylesheet.get_base_label_style())
 
         tool_layout.addWidget(tool_title)
         tool_layout.addWidget(self.tool_cmd)
-        tool_layout.addWidget(self.run_tool_btn)
 
         # 组装内容区域
         content_layout.addWidget(config_card)
@@ -221,7 +216,7 @@ class MainWindow(QMainWindow):
 
         self.hotkey_manager = CrossPlatformHotkeyManager(self.hotkey)
         self.hotkey_manager.hotkey_pressed.connect(self.start_screenshot)
-        self.hotkey_manager.mouse_clicked.connect(self.hover_tool.capture_at_cursor)
+        self.hotkey_manager.mouse_clicked.connect(self.start_hover)
         self.hotkey_manager.start()
 
     def setup_tray_icon(self):
@@ -266,12 +261,14 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "成功", "设置已保存并应用！")
 
     def update_ui_when_config_changed(self):
+        """当配置变了，需要更新部分UI和状态"""
         self.screenshot_btn.setText(f'📷 截屏识别({self.settings_manager.get_value("capture_shortcuts", "alt+c")})')
-        cmd_path = self.settings_manager.get_value("external_tool_exec_cmd", "")
-        if not cmd_path:
-            self.tool_cmd.setPlaceholderText("输入外部工具命令，使用{text}作为文本占位符")
+        cmd = self.settings_manager.get_value("external_tool_exec_cmd", "")
+        self.has_external_tool = bool(cmd)
+        if not cmd:
+            self.tool_cmd.setText("在设置中配置外部工具后再使用OCR功能")
         else:
-            self.tool_cmd.setText(f'"{cmd_path}"' + ' "{text}"')
+            self.tool_cmd.setText(cmd)
 
     def connect_signals(self):
         """连接组件信号"""
@@ -385,37 +382,25 @@ class MainWindow(QMainWindow):
 
     def start_screenshot(self):
         """启动截图OCR功能"""
-        if not self.has_external_tool and not self.check_external_tool_call():
+        if not self.has_external_tool:
+            QMessageBox.warning(self, "警告", "请先在设置中配置外部工具命令")
             return
 
         self.hide()
         self.status_label.setText("请选择截图区域")
         QTimer.singleShot(300, self.capture_tool.start_capture)
 
-    def check_external_tool_call(self):
-        """检查外部工具调用"""
-        cmd = self.tool_cmd.text()
-        if not cmd:
-            QMessageBox.warning(self, "错误", "请输入外部工具命令")
-            return False
+    def start_hover(self):
+        if not self.has_external_tool:
+            QMessageBox.warning(self, "警告", "请先在设置中配置外部工具命令")
+            return
 
-        try:
-            test_command = cmd.replace("{text}", "hello")
-            subprocess.Popen(test_command, shell=True)
-            self.statusBar().showMessage(f"测试命令: {test_command}", 3000)
-
-            self.has_external_tool = True
-            QMessageBox.information(self, "成功", "外部工具命令设置成功")
-            return True
-        except Exception as e:
-            QMessageBox.critical(self, "错误", f"命令格式错误: {str(e)}")
-            return False
+        self.hover_tool.capture_at_cursor()
 
     def run_external_tool(self):
         """运行外部工具处理OCR结果"""
         text = self.result_text.toPlainText()
-        cmd = self.tool_cmd.text()
-
+        cmd = self.settings_manager.get_value("external_tool_exec_cmd", "")
         try:
             cmd = cmd.replace("{text}", text)
             subprocess.Popen(cmd, shell=True)

@@ -371,7 +371,7 @@ class StyleSheet:
             }}
         """
 
-    def get_file_path_label_style(self) -> str:
+    def get_base_label_style(self) -> str:
         """文件路径标签样式"""
         return f"""
             QLabel {{
