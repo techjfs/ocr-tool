@@ -1,7 +1,6 @@
-import json
-
 from paddleocr import PaddleOCR
 import re
+import json
 from PySide6.QtGui import QImage
 from util.utils import PathConfig
 
@@ -66,13 +65,9 @@ class OCREngine:
 
         texts = []
         for res in result:
-            res.print()
-            res.save_to_json(ocr_dir)
-            ocr_res_path = os.path.join(ocr_dir, "ocr_res.json")
-            with open(ocr_res_path, "r", encoding='utf-8') as f:
-                json_data = json.loads(f.read())
-                for i, text in enumerate(json_data.get("rec_texts")):
-                    texts.append((text, json_data.get("rec_boxes")[i], json_data.get("rec_scores")[i]))
+            json_data = res.json.get("res")
+            for i, text in enumerate(json_data.get("rec_texts")):
+                texts.append((text, json_data.get("rec_boxes")[i], json_data.get("rec_scores")[i]))
         return texts
 
 
