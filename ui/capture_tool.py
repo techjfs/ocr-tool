@@ -1,7 +1,7 @@
 from PySide6.QtCore import Qt, QRect, Signal, QObject
 from PySide6.QtGui import QPainter, QPen, QBrush, QColor, QFont, QImage, QGuiApplication
 from PySide6.QtWidgets import QWidget
-from core.ocr_engine_v5 import OCREngine
+from core.ocr_engine import OCREngine
 
 
 class ScreenshotWidget(QWidget):

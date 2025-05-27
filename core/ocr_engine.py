@@ -1,4 +1,6 @@
-from paddleocr import PaddleOCR
+import json
+
+from rapidocr import RapidOCR
 import re
 import json
 from PySide6.QtGui import QImage
@@ -17,16 +19,11 @@ class OCREngine:
         return cls._instance
 
     def __init__(self):
-        self.ocr = PaddleOCR(
-            use_doc_unwarping=True,
-            use_textline_orientation=False,
-            use_doc_orientation_classify=False,
-            device="CPU",
-            text_detection_model_name="PP-OCRv5_server_det",
-            text_detection_model_dir=PathConfig.get_model_path("PP-OCRv5_server_det"),
-            text_recognition_model_name="PP-OCRv5_server_rec",
-            text_recognition_model_dir=PathConfig.get_model_path("PP-OCRv5_server_rec"),
-        )
+        self.ocr = RapidOCR(params={
+            "Global.lang_det": "ch_mobile",
+            "Global.lang_rec": "ch_mobile",
+            "Global.with_onnx": True,
+        })
 
     def is_english_only(self, text_list):
         """判断文本是否只包含英文字符
@@ -61,15 +58,12 @@ class OCREngine:
         screenshot_path = os.path.join(ocr_dir, "ocr.png")
         image.save(screenshot_path)
 
-        result = self.ocr.predict(screenshot_path)
+        result = self.ocr(screenshot_path)
 
         texts = []
-        for res in result:
-            json_data = res.json.get("res")
-            for i, text in enumerate(json_data.get("rec_texts")):
-                texts.append((text, json_data.get("rec_boxes")[i], json_data.get("rec_scores")[i]))
+        for i, txt in enumerate(result.txts):
+            texts.append((txt, result.boxes[i], result.scores[i]))
         return texts
-
 
     def get_text_only(self, image: QImage):
         """只返回文本结果，不含位置信息"""
