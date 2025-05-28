@@ -327,7 +327,7 @@ class HoverTool(QObject):
         print(f"识别文本: '{text}'")
 
         # 计算文本框的边界信息
-        x1, y1, x2, y2 = box
+        x1, x2, y1, y2 = box
         box_width = x2 - x1
         box_height = y2 - y1
 

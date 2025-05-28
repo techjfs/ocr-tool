@@ -1,8 +1,5 @@
-import json
-
 from rapidocr import RapidOCR
 import re
-import json
 from PySide6.QtGui import QImage
 from util.utils import PathConfig
 
@@ -66,7 +63,12 @@ class OCREngine:
 
         texts = []
         for i, txt in enumerate(result.txts):
-            texts.append((txt, result.boxes[i], result.scores[i]))
+            # TODO 更新模型到v5版本，需要check此处是否正常
+            min_x = min([x[0] for x in result.boxes[i]])
+            max_x = max([x[0] for x in result.boxes[i]])
+            min_y = min([x[1] for x in result.boxes[i]])
+            max_y = max([x[1] for x in result.boxes[i]])
+            texts.append((txt, [min_x, max_x, min_y, max_y], result.scores[i]))
         return texts
 
     def get_text_only(self, image: QImage):
