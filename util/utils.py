@@ -8,8 +8,8 @@ class PathConfig:
     models_dir = project_root / "_internal" / "models"
 
     @staticmethod
-    def get_model_path(model_name):
-        return str(PathConfig.models_dir / model_name)
+    def get_model_path(model_name, lang_type="ch"):
+        return str(PathConfig.models_dir / lang_type / model_name)
 
     @staticmethod
     def get_config_path():

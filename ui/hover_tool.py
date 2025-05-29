@@ -301,6 +301,7 @@ class HoverTool(QObject):
                 text_at_mouse = (text, box, conf)
                 break
 
+        print(f"filtered_results: {filtered_results}")
         # 如果鼠标位置没有直接找到文本框，使用最近的文本框
         if not text_at_mouse:
             min_distance = float('inf')

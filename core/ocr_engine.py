@@ -1,7 +1,7 @@
 from rapidocr import RapidOCR
 import re
 from PySide6.QtGui import QImage
-from util.utils import PathConfig
+from util.utils import PathConfig, qimage_to_numpy
 
 
 class OCREngine:
@@ -16,13 +16,22 @@ class OCREngine:
         return cls._instance
 
     def __init__(self):
-        self.ocr = RapidOCR(params={
+        self.default_ocr = RapidOCR(params={
             "Global.with_onnx": True,
             "Global.lang_det": "ch_mobile",
             "Global.lang_rec": "ch_mobile",
             "Det.model_path": PathConfig.get_model_path("ch_PP-OCRv4_det_infer.onnx"),
             "Cls.model_path": PathConfig.get_model_path("ch_ppocr_mobile_v2.0_cls_infer.onnx"),
             "Rec.model_path": PathConfig.get_model_path("ch_PP-OCRv4_rec_infer.onnx"),
+            "Global.font_path": PathConfig.models_dir / "FZYTK.TTF"
+        })
+        self.en_ocr = RapidOCR(params={
+            "Global.with_onnx": True,
+            "Global.lang_det": "en_mobile",
+            "Global.lang_rec": "en_mobile",
+            "Det.model_path": PathConfig.get_model_path("en_PP-OCRv3_det_infer.onnx", lang_type="en"),
+            "Rec.model_path": PathConfig.get_model_path("en_PP-OCRv4_rec_infer.onnx", lang_type="en"),
+            "Cls.model_path": PathConfig.get_model_path("ch_ppocr_mobile_v2.0_cls_infer.onnx"),
             "Global.font_path": PathConfig.models_dir / "FZYTK.TTF"
         })
 
@@ -59,15 +68,27 @@ class OCREngine:
         screenshot_path = os.path.join(ocr_dir, "ocr.png")
         image.save(screenshot_path)
 
-        result = self.ocr(screenshot_path)
+        ch_result = self.default_ocr(screenshot_path)
 
+        ch_texts = self.process_ocr_result(ch_result)
+
+        if self.is_english_only(ch_texts):
+            en_result = self.en_ocr(screenshot_path)
+            en_texts = self.process_ocr_result(en_result)
+            print(f"使用英文模型识别结果: {en_texts}")
+            return en_texts
+
+        print(f"使用中文模型识别结果: {ch_texts}")
+        return ch_texts
+
+    def process_ocr_result(self, result):
         texts = []
         for i, txt in enumerate(result.txts):
             # TODO 更新模型到v5版本，需要check此处是否正常
-            min_x = min([x[0] for x in result.boxes[i]])
-            max_x = max([x[0] for x in result.boxes[i]])
-            min_y = min([x[1] for x in result.boxes[i]])
-            max_y = max([x[1] for x in result.boxes[i]])
+            print(txt, result.boxes[i])
+            x_list = [x[0] for x in result.boxes[i]]
+            y_list = [x[1] for x in result.boxes[i]]
+            min_x, max_x, min_y, max_y = min(x_list), max(x_list), min(y_list), max(y_list)
             texts.append((txt, [min_x, max_x, min_y, max_y], result.scores[i]))
         return texts
 
