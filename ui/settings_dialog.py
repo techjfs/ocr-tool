@@ -1,337 +1,299 @@
-"""
-设置对话框模块
-"""
-
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
-                               QLabel, QLineEdit, QFormLayout, QSplitter,
+                               QLabel, QLineEdit, QFormLayout, QScrollArea,
                                QListWidget, QStackedWidget, QFileDialog,
-                               QWidget, QMessageBox)
-from PySide6.QtCore import Qt
+                               QWidget, QMessageBox, QFrame)
+from PySide6.QtCore import Qt, QSize
 import subprocess
+import os
 from ui.theme import default_stylesheet
 
 
-class SettingsDialog(QDialog):
-    """设置对话框"""
+class SectionWidget(QWidget):
+    def __init__(self, title: str, description: str = "", stylesheet=None):
+        super().__init__()
+        self.stylesheet = stylesheet
+        self.setStyleSheet(self.stylesheet.get_compact_card_style() if stylesheet else "")
 
+        self._layout = QVBoxLayout()
+        self._layout.setContentsMargins(12, 10, 12, 10)
+        self._layout.setSpacing(6)
+
+        title_label = QLabel(title)
+        title_label.setStyleSheet(self.stylesheet.get_section_title_style(12))
+        self._layout.addWidget(title_label)
+
+        if description:
+            desc_label = QLabel(description)
+            desc_label.setStyleSheet(self.stylesheet.get_info_label_style())
+            self._layout.addWidget(desc_label)
+
+            divider = QFrame()
+            divider.setFrameShape(QFrame.Shape.HLine)
+            divider.setStyleSheet(self.stylesheet.get_divider_style())
+            self._layout.addWidget(divider)
+
+        self.setLayout(self._layout)
+
+    def addLayout(self, layout):
+        self._layout.addLayout(layout)
+
+    def addWidget(self, widget):
+        self._layout.addWidget(widget)
+
+
+class SettingsDialog(QDialog):
     def __init__(self, settings_manager, parent=None):
         super().__init__(parent)
         self.settings_manager = settings_manager
         self.stylesheet = default_stylesheet
-
         self.setWindowTitle("设置")
         self.setModal(True)
-        self.resize(400, 300)
+        self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.WindowCloseButtonHint)
+        self.setMinimumSize(680, 520)
+        self.resize(720, 580)
 
         self.setup_ui()
         self.load_settings()
 
     def setup_ui(self):
-        """设置用户界面"""
-        main_layout = QVBoxLayout()
+        main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
-        # 创建顶部标题栏
-        title_widget = self.create_title_widget()
+        main_layout.addWidget(self.create_title_widget())
+        main_layout.addWidget(self.create_content_widget(), 1)
+        main_layout.addWidget(self.create_bottom_widget())
 
-        # 主要内容区域
-        content_widget = self.create_content_widget()
-
-        # 底部按钮区域
-        button_container = self.create_button_container()
-
-        # 组装主布局
-        main_layout.addWidget(title_widget)
-        main_layout.addWidget(content_widget, 1)
-        main_layout.addWidget(button_container)
-
-        self.setLayout(main_layout)
-
-        # 设置初始选择
         self.category_list.setCurrentRow(0)
 
-        # 设置窗口最小尺寸
-        self.setMinimumSize(800, 600)
-
-    def create_title_widget(self) -> QWidget:
-        """创建标题栏控件"""
-        title_widget = QWidget()
-        title_widget.setStyleSheet(self.stylesheet.get_title_bar_style())
-
-        title_layout = QHBoxLayout(title_widget)
-        title_layout.setContentsMargins(20, 15, 20, 15)
+    def create_title_widget(self):
+        widget = QWidget()
+        widget.setStyleSheet(self.stylesheet.get_title_bar_style())
+        layout = QHBoxLayout(widget)
+        layout.setContentsMargins(16, 8, 16, 8)
 
         title_label = QLabel("系统设置")
-        title_label.setStyleSheet(self.stylesheet.get_title_label_style(18))
+        title_label.setStyleSheet(self.stylesheet.get_title_label_style(16))
+        status_label = QLabel("配置中心")
+        status_label.setStyleSheet(self.stylesheet.get_status_label_style())
 
-        title_layout.addWidget(title_label)
-        title_layout.addStretch()
+        layout.addWidget(title_label)
+        layout.addWidget(status_label)
+        layout.addStretch()
+        return widget
 
-        return title_widget
+    def create_content_widget(self):
+        widget = QWidget()
+        widget.setStyleSheet(self.stylesheet.get_content_background_style())
+        layout = QHBoxLayout(widget)
+        layout.setContentsMargins(8, 8, 8, 8)
 
-    def create_content_widget(self) -> QWidget:
-        """创建内容区域控件"""
-        content_widget = QWidget()
-        content_widget.setStyleSheet(self.stylesheet.get_content_background_style())
+        layout.addWidget(self.create_navigation_widget())
+        layout.addWidget(self.create_settings_widget(), 1)
+        return widget
 
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        splitter.setStyleSheet(self.stylesheet.get_splitter_style())
+    def create_navigation_widget(self):
+        widget = QWidget()
+        widget.setStyleSheet(self.stylesheet.get_compact_card_style())
+        widget.setFixedWidth(140)
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(6, 8, 6, 8)
 
-        # 左侧分类列表
-        left_container = self.create_left_container()
-
-        # 右侧设置页面区域
-        right_container = self.create_right_container()
-
-        splitter.addWidget(left_container)
-        splitter.addWidget(right_container)
-        splitter.setStretchFactor(0, 0)  # 左侧固定
-        splitter.setStretchFactor(1, 1)  # 右侧自适应
-
-        content_layout = QVBoxLayout(content_widget)
-        content_layout.setContentsMargins(0, 0, 0, 0)
-        content_layout.addWidget(splitter)
-
-        return content_widget
-
-    def create_left_container(self) -> QWidget:
-        """创建左侧容器"""
-        left_container = QWidget()
-        left_layout = QVBoxLayout(left_container)
-        left_layout.setContentsMargins(15, 15, 8, 15)
+        nav_title = QLabel("设置分类")
+        nav_title.setStyleSheet(self.stylesheet.get_section_title_style(12))
+        layout.addWidget(nav_title)
 
         self.category_list = QListWidget()
-        self.category_list.setFixedWidth(160)
-        self.category_list.setStyleSheet(self.stylesheet.get_list_widget_style())
-
-        categories = ["界面设置", "系统设计", "高级设置"]
-        self.category_list.addItems(categories)
+        self.category_list.addItems(["🎨 界面设置", "⚙️ 系统设置", "🔧 高级设置"])
+        self.category_list.setStyleSheet(self.stylesheet.get_nav_list_style())
         self.category_list.currentRowChanged.connect(self.on_category_changed)
+        layout.addWidget(self.category_list)
+        layout.addStretch()
+        return widget
 
-        left_layout.addWidget(self.category_list)
-        left_layout.addStretch()
-
-        return left_container
-
-    def create_right_container(self) -> QWidget:
-        """创建右侧容器"""
-        right_container = QWidget()
-        right_layout = QVBoxLayout(right_container)
-        right_layout.setContentsMargins(8, 15, 15, 15)
+    def create_settings_widget(self):
+        widget = QWidget()
+        widget.setStyleSheet(self.stylesheet.get_card_style())
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
 
         self.settings_stack = QStackedWidget()
-        self.settings_stack.setStyleSheet(self.stylesheet.get_stacked_widget_style())
+        layout.addWidget(self.settings_stack)
 
         self.create_ui_settings_page()
         self.create_system_settings_page()
         self.create_advanced_settings_page()
+        return widget
 
-        right_layout.addWidget(self.settings_stack)
+    def create_scrollable_page(self, title, icon, sections):
+        page = QWidget()
+        header = QLabel(f"{icon} {title}")
+        header.setStyleSheet(self.stylesheet.get_section_title_style(14))
 
-        return right_container
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
 
-    def create_button_container(self) -> QWidget:
-        """创建按钮容器"""
-        button_container = QWidget()
-        button_container.setStyleSheet(self.stylesheet.get_bottom_toolbar_style())
+        content = QWidget()
+        layout = QVBoxLayout(content)
+        layout.setContentsMargins(20, 16, 20, 16)
+        layout.setSpacing(12)
+        for section in sections:
+            layout.addWidget(section)
+        layout.addStretch()
+        scroll.setWidget(content)
 
-        button_layout = QHBoxLayout(button_container)
-        button_layout.setContentsMargins(20, 15, 20, 15)
-        button_layout.setSpacing(12)
+        page_layout = QVBoxLayout(page)
+        page_layout.setContentsMargins(0, 0, 0, 0)
+        page_layout.addWidget(header)
+        page_layout.addWidget(scroll)
 
-        # 版本信息
-        info_label = QLabel("版本 1.0.0")
-        info_label.setStyleSheet(self.stylesheet.get_version_label_style())
-
-        button_layout.addWidget(info_label)
-        button_layout.addStretch()
-
-        # 创建按钮
-        self.create_buttons(button_layout)
-
-        return button_container
-
-    def create_buttons(self, layout: QHBoxLayout):
-        """创建按钮"""
-        button_styles = self.stylesheet.get_settings_button_style()
-
-        self.reset_btn = QPushButton("恢复默认")
-        self.cancel_btn = QPushButton("取消")
-        self.save_btn = QPushButton("保存设置")
-
-        self.reset_btn.setStyleSheet(button_styles['reset'])
-        self.cancel_btn.setStyleSheet(button_styles['cancel'])
-        self.save_btn.setStyleSheet(button_styles['save'])
-
-        # 连接信号
-        self.save_btn.clicked.connect(self.accept)
-        self.cancel_btn.clicked.connect(self.reject)
-        self.reset_btn.clicked.connect(self.reset_to_default)
-
-        layout.addWidget(self.reset_btn)
-        layout.addWidget(self.cancel_btn)
-        layout.addWidget(self.save_btn)
+        self.settings_stack.addWidget(page)
 
     def create_ui_settings_page(self):
-        """创建界面设置页面"""
-        page = QWidget()
-        layout = QVBoxLayout()
+        theme_section = SectionWidget("主题配色", "选择应用程序的视觉主题", self.stylesheet)
+        theme_layout = QHBoxLayout()
+        for name, color in [("蓝色主题", "#4A90E2"), ("红色主题", "#E74C3C"), ("绿色主题", "#27AE60")]:
+            btn = QPushButton(name)
+            btn.setStyleSheet(f"background-color:{color}; color:white; padding:6px; border:none;")
+            btn.setCheckable(True)
+            theme_layout.addWidget(btn)
+        theme_layout.addStretch()
+        theme_section.addLayout(theme_layout)
 
-        todo_label = QLabel("待完善")
-        todo_label.setStyleSheet(self.stylesheet.get_section_title_style())
-        layout.addWidget(todo_label)
+        display_section = SectionWidget("显示选项", "调整界面显示相关设置", self.stylesheet)
+        form = QFormLayout()
+        form.addRow("界面字体大小:", QLineEdit("12"))
+        form.addRow("窗口透明度:", QLineEdit("100"))
+        display_section.addLayout(form)
 
-        page.setLayout(layout)
-        self.settings_stack.addWidget(page)
+        self.create_scrollable_page("界面设置", "🎨", [theme_section, display_section])
 
     def create_system_settings_page(self):
-        """创建系统设置页面"""
-        page = QWidget()
-        form_layout = QFormLayout()
-
-        # 快捷键设置
-        self.hotkey_input = QLineEdit("")
+        hotkey_section = SectionWidget("快捷键配置", "设置全局快捷键组合", self.stylesheet)
+        self.hotkey_input = QLineEdit()
         self.hotkey_input.setPlaceholderText("例如: alt+c")
-        self.hotkey_input.setStyleSheet(self.stylesheet.get_line_edit_style())
-        form_layout.addRow("设置快捷键:", self.hotkey_input)
+        form = QFormLayout()
+        form.addRow("截图快捷键:", self.hotkey_input)
+        hotkey_section.addLayout(form)
 
-        # 选择外部工具
-        choose_tool_layout = QHBoxLayout()
-
-        self.tool_path_label = QLabel("未选择外部工具")
-        self.tool_path_label.setStyleSheet(self.stylesheet.get_base_label_style())
-        self.tool_path_label.setMinimumHeight(30)
-
-        self.open_tool_button = QPushButton("选择外部工具")
-        self.open_tool_button.setStyleSheet(self.stylesheet.get_secondary_button_style())
-        self.open_tool_button.clicked.connect(self.open_file_dialog)
-
-        choose_tool_layout.addWidget(self.tool_path_label)
-        choose_tool_layout.addWidget(self.open_tool_button)
-
+        tool_section = SectionWidget("外部工具集成", "配置外部图像处理工具", self.stylesheet)
+        self.tool_path_label = QLabel("未选择工具")
+        self.tool_path_label.setToolTip("")
+        self.tool_path_label.setProperty("full_path", "")
         self.tool_param_input = QLineEdit('"{text}"')
-        self.tool_param_input.setStyleSheet(self.stylesheet.get_line_edit_style())
-        self.tool_param_input.textChanged.connect(self.on_tool_param_input_changed)
+        self.tool_param_input.textChanged.connect(self.update_check_tool_text)
+        self.check_info_label = QLabel("命令预览将在此显示")
 
-        # 检查外部工具
-        check_info_layout = QHBoxLayout()
+        browse_btn = QPushButton("浏览...")
+        browse_btn.clicked.connect(self.open_file_dialog)
 
-        self.check_info_label = QLabel("")
-        self.check_info_label.setStyleSheet(self.stylesheet.get_base_label_style())
-        self.check_info_label.setMinimumHeight(30)
+        path_layout = QHBoxLayout()
+        path_layout.addWidget(self.tool_path_label, 1)
+        path_layout.addWidget(browse_btn)
+        tool_section.addLayout(path_layout)
 
-        self.check_tool_button = QPushButton("检查外部工具")
-        self.check_tool_button.setStyleSheet(self.stylesheet.get_primary_button_style())
-        self.check_tool_button.clicked.connect(self.check_tool_call)
+        param_layout = QHBoxLayout()
+        param_layout.addWidget(self.tool_param_input, 1)
+        tool_section.addLayout(param_layout)
 
-        check_info_layout.addWidget(self.check_info_label)
-        check_info_layout.addWidget(self.check_tool_button)
+        preview_layout = QVBoxLayout()
+        preview_layout.addWidget(self.check_info_label)
+        test_btn = QPushButton("测试命令")
+        test_btn.clicked.connect(self.check_tool_call)
+        preview_layout.addWidget(test_btn)
+        tool_section.addLayout(preview_layout)
 
-
-        form_layout.addRow("外部工具:", choose_tool_layout)
-        form_layout.addRow("外部工具参数:", self.tool_param_input)
-        form_layout.addRow(check_info_layout)
-
-        page.setLayout(form_layout)
-        self.settings_stack.addWidget(page)
+        self.create_scrollable_page("系统设置", "⚙️", [hotkey_section, tool_section])
 
     def create_advanced_settings_page(self):
-        """创建高级设置页面"""
-        page = QWidget()
+        dev_section = SectionWidget("开发中功能", "这些功能正在开发中，敬请期待", self.stylesheet)
         layout = QVBoxLayout()
+        for f in ["🔄 自动更新检查", "📊 使用统计分析", "🗃️ 数据导入导出", "🔐 高级安全选项", "🌐 云同步设置"]:
+            layout.addWidget(QLabel(f))
+        dev_section.addLayout(layout)
+        self.create_scrollable_page("高级设置", "🔧", [dev_section])
 
-        todo_label = QLabel("待完善")
-        todo_label.setStyleSheet(self.stylesheet.get_section_title_style())
-        layout.addWidget(todo_label)
+    def create_bottom_widget(self):
+        widget = QWidget()
+        widget.setFixedHeight(50)
+        layout = QHBoxLayout(widget)
+        layout.setContentsMargins(16, 10, 16, 10)
 
-        page.setLayout(layout)
-        self.settings_stack.addWidget(page)
+        layout.addWidget(QLabel("版本 1.0.0"))
+        layout.addStretch()
+        self.create_action_buttons(layout)
+        return widget
+
+    def create_action_buttons(self, layout):
+        for text, callback in [("恢复默认", self.reset_to_default), ("取消", self.reject), ("保存设置", self.accept)]:
+            btn = QPushButton(text)
+            btn.setFixedSize(QSize(70, 28))
+            btn.clicked.connect(callback)
+            layout.addWidget(btn)
 
     def on_category_changed(self, index):
-        """分类改变事件"""
         self.settings_stack.setCurrentIndex(index)
 
-    def on_tool_param_input_changed(self):
-        self.update_check_tool_text()
-
-    def check_tool_call(self):
-        cmd = self.check_info_label.text()
-        if not cmd:
-            QMessageBox.warning(self, "错误", "请输入外部工具命令")
-            return False
-
-        try:
-            test_command = cmd.replace("{text}", "hello")
-            subprocess.Popen(test_command, shell=True)
-
-            QMessageBox.information(self, "成功", "外部工具命令设置成功")
-            return True
-        except Exception as e:
-            QMessageBox.critical(self, "错误", f"命令格式错误: {str(e)}")
-            return False
-
     def open_file_dialog(self):
-        """打开文件对话框"""
-        file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "选择文件",
-            "",
-            "可执行文件 (*.exe);;其他可执行文件 (*)"
-        )
+        file_path, _ = QFileDialog.getOpenFileName(self, "选择外部工具", "", "可执行文件 (*.exe);;所有文件 (*.*)")
         if file_path:
-            self.tool_path_label.setText(file_path)
+            file_name = os.path.basename(file_path)
+            self.tool_path_label.setText(file_name)
             self.tool_path_label.setToolTip(file_path)
+            self.tool_path_label.setProperty("full_path", file_path)
             self.update_check_tool_text()
 
     def update_check_tool_text(self):
-        tool_path = self.tool_path_label.text()
+        tool_path = self.tool_path_label.property("full_path")
         tool_param = self.tool_param_input.text()
-        self.check_info_label.setText(f'"{tool_path}" {tool_param}')
+        if tool_path:
+            self.check_info_label.setText(f'"{tool_path}" {tool_param}')
+        else:
+            self.check_info_label.setText("请先选择外部工具")
+
+    def check_tool_call(self):
+        cmd = self.check_info_label.text().replace("{text}", "hello")
+        try:
+            subprocess.Popen(cmd, shell=True)
+            QMessageBox.information(self, "成功", "✅ 外部工具测试成功！")
+        except Exception as e:
+            QMessageBox.critical(self, "错误", f"❌ 命令执行失败:\n{str(e)}")
 
     def load_settings(self):
-        """从设置中加载当前值"""
         cmd = self.settings_manager.get_value("external_tool_exec_cmd", "")
         if cmd:
             self.check_info_label.setText(cmd)
-            self.tool_path_label.setText(cmd.split('"')[1])
-        else:
-            self.check_info_label.setText("")
-            self.tool_path_label.setText("")
-        self.hotkey_input.setText(
-            self.settings_manager.get_value("capture_shortcuts", "alt+c")
-        )
+            if '"' in cmd:
+                parts = cmd.split('"')
+                print(parts)
+                if len(parts) >= 3:
+                    tool_path = parts[1]
+                    file_name = os.path.basename(tool_path)
+                    self.tool_path_label.setText(file_name)
+                    self.tool_path_label.setToolTip(tool_path)
+                    self.tool_path_label.setProperty("full_path", tool_path)
+                    self.tool_param_input.setText(f'"{parts[3].strip()}"')
+
+        hotkey = self.settings_manager.get_value("capture_shortcuts", "alt+c")
+        self.hotkey_input.setText(hotkey)
 
     def save_settings(self):
-        """保存所有设置"""
-        self.settings_manager.set_value(
-            "external_tool_exec_cmd",
-            self.check_info_label.text()
-        )
-        self.settings_manager.set_value(
-            "capture_shortcuts",
-            self.hotkey_input.text()
-        )
-        # 强制同步到磁盘
+        cmd = self.check_info_label.text()
+        if cmd != "请先选择外部工具":
+            self.settings_manager.set_value("external_tool_exec_cmd", cmd)
+        self.settings_manager.set_value("capture_shortcuts", self.hotkey_input.text())
         self.settings_manager.sync()
 
     def reset_to_default(self):
-        """恢复默认设置"""
-        reply = QMessageBox.question(
-            self,
-            "确认",
-            "确定要恢复到默认设置吗？这将丢失所有自定义设置。",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No
-        )
+        reply = QMessageBox.question(self, "确认操作", "⚠️ 确定要恢复默认设置吗？", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         if reply == QMessageBox.StandardButton.Yes:
             self.settings_manager.reset_to_defaults()
             self.load_settings()
-            QMessageBox.information(self, "设置", "已恢复到默认设置！")
+            QMessageBox.information(self, "完成", "✅ 已恢复默认设置！")
 
     def accept(self):
-        """接受设置"""
         self.save_settings()
         if self.parent():
-            self.parent().setup_hotkey()
+            self.parent().setup_hotkey_manager()
         super().accept()

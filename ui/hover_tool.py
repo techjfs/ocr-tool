@@ -494,7 +494,7 @@ class HoverTool(QObject):
                 print(f"捕获区域: {capture_rect}")
 
                 # 显示视觉反馈 - 确保在OCR之前显示
-                self._show_visual_feedback(capture_rect)
+                # self._show_visual_feedback(capture_rect)
 
                 # 强制处理事件，确保反馈框显示
                 QGuiApplication.processEvents()

@@ -122,7 +122,7 @@ class MainWindow(QMainWindow):
 
     def _setup_modules(self):
         """设置功能模块"""
-        self._setup_hotkey_manager()
+        self.setup_hotkey_manager()
         self._setup_system_tray()
         self._connect_signals()
         self._update_ui_config()
@@ -471,7 +471,7 @@ class MainWindow(QMainWindow):
                 }}
             """)
 
-    def _setup_hotkey_manager(self):
+    def setup_hotkey_manager(self):
         """设置全局热键管理器"""
         try:
             if hasattr(self, 'hotkey_manager') and self.hotkey_manager:
@@ -591,7 +591,7 @@ class MainWindow(QMainWindow):
             dialog = SettingsDialog(self.settings_manager, self)
             if dialog.exec() == QDialog.DialogCode.Accepted:
                 self._update_ui_config()
-                self._setup_hotkey_manager()  # 重新设置热键
+                self.setup_hotkey_manager()  # 重新设置热键
                 QMessageBox.information(self, "成功", "设置已保存并应用！")
                 self.logger.info("设置已更新")
         except Exception as e:

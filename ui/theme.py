@@ -132,14 +132,14 @@ class StyleSheet:
 
     # 通用组件样式
     def get_title_bar_style(self) -> str:
-        """标题栏样式 - 更紧凑"""
+        """标题栏样式 - 紧凑优化"""
         return f"""
             QWidget {{
                 {self.get_gradient_background(self.theme.PRIMARY, self.theme.PRIMARY_DARK)}
                 color: {self.theme.WHITE};
                 border-bottom: 1px solid {self.theme.PRIMARY_DARKER};
-                min-height: 50px;
-                max-height: 50px;
+                min-height: 45px;
+                max-height: 45px;
             }}
         """
 
@@ -164,8 +164,8 @@ class StyleSheet:
                 font-weight: 500;
                 color: {self.theme.WHITE};
                 background: rgba(255, 255, 255, 0.25);
-                padding: 3px 10px;
-                border-radius: 10px;
+                padding: 2px 8px;
+                border-radius: 8px;
                 border: 1px solid rgba(255, 255, 255, 0.3);
             }}
         """
@@ -176,8 +176,7 @@ class StyleSheet:
             QWidget {{
                 background-color: {self.theme.CARD_BACKGROUND};
                 border: 1px solid {self.theme.BORDER_COLOR};
-                border-radius: 10px;
-                /* 模拟阴影效果 */
+                border-radius: 8px;
             }}
         """
 
@@ -187,8 +186,8 @@ class StyleSheet:
             QWidget {{
                 background-color: {self.theme.CARD_BACKGROUND};
                 border: 1px solid {self.theme.BORDER_COLOR};
-                border-radius: 8px;
-                margin: 2px;
+                border-radius: 6px;
+                margin: 1px;
             }}
         """
 
@@ -205,14 +204,14 @@ class StyleSheet:
         """主要按钮样式 - 更紧凑"""
         return f"""
             QPushButton {{
-                padding: 10px 18px;
-                font-size: 13px;
+                padding: 8px 16px;
+                font-size: 12px;
                 font-weight: 500;
-                border-radius: 6px;
+                border-radius: 5px;
                 border: none;
                 {self.get_vertical_gradient_background(self.theme.PRIMARY_LIGHT, self.theme.PRIMARY)}
                 color: {self.theme.WHITE};
-                min-height: 20px;
+                min-height: 18px;
             }}
             QPushButton:hover {{
                 {self.get_vertical_gradient_background(self.theme.PRIMARY, self.theme.PRIMARY_DARK)}
@@ -230,14 +229,14 @@ class StyleSheet:
         """次要按钮样式 - 更紧凑"""
         return f"""
             QPushButton {{
-                padding: 10px 18px;
-                font-size: 13px;
+                padding: 8px 16px;
+                font-size: 12px;
                 font-weight: 500;
-                border-radius: 6px;
+                border-radius: 5px;
                 background-color: {self.theme.WHITE};
                 color: {self.theme.GRAY_700};
                 border: 1px solid {self.theme.GRAY_400};
-                min-height: 20px;
+                min-height: 18px;
             }}
             QPushButton:hover {{
                 background-color: {self.theme.GRAY_100};
@@ -262,13 +261,13 @@ class StyleSheet:
         """小按钮样式"""
         return f"""
             QPushButton {{
-                padding: 6px 12px;
+                padding: 4px 10px;
                 font-size: 11px;
-                border-radius: 4px;
+                border-radius: 3px;
                 background-color: transparent;
                 color: {self.theme.GRAY_600};
                 border: 1px solid transparent;
-                min-height: 16px;
+                min-height: 14px;
             }}
             QPushButton:hover {{
                 background-color: {self.theme.GRAY_200};
@@ -283,13 +282,13 @@ class StyleSheet:
         """图标按钮样式"""
         return f"""
             QPushButton {{
-                padding: 8px;
-                border-radius: 6px;
+                padding: 6px;
+                border-radius: 5px;
                 background-color: {self.theme.WHITE};
                 border: 1px solid {self.theme.BORDER_COLOR};
                 color: {self.theme.GRAY_600};
-                min-width: 36px;
-                min-height: 36px;
+                min-width: 32px;
+                min-height: 32px;
             }}
             QPushButton:hover {{
                 background-color: {self.theme.PRIMARY_LIGHTER};
@@ -303,16 +302,16 @@ class StyleSheet:
         """
 
     def get_settings_button_style(self) -> str:
-        """设置按钮样式"""
+        """设置按钮样式 - 优化尺寸"""
         base_style = """
             QPushButton {
-                padding: 8px 16px;
-                font-size: 13px;
+                padding: 6px 14px;
+                font-size: 12px;
                 font-weight: 500;
-                border-radius: 6px;
+                border-radius: 5px;
                 border: 1px solid transparent;
-                min-width: 70px;
-                min-height: 20px;
+                min-width: 65px;
+                min-height: 18px;
             }
             QPushButton:focus {
                 outline: none;
@@ -369,13 +368,13 @@ class StyleSheet:
         """输入框样式 - 更紧凑"""
         return f"""
             QLineEdit {{
-                padding: 8px 12px;
-                font-size: 13px;
+                padding: 6px 10px;
+                font-size: 12px;
                 border: 1px solid {self.theme.GRAY_400};
-                border-radius: 6px;
+                border-radius: 5px;
                 background-color: {self.theme.WHITE};
                 color: {self.theme.GRAY_700};
-                min-height: 16px;
+                min-height: 14px;
             }}
             QLineEdit:focus {{
                 border-color: {self.theme.PRIMARY};
@@ -392,9 +391,9 @@ class StyleSheet:
         return f"""
             QTextEdit {{
                 border: 1px solid {self.theme.BORDER_COLOR};
-                border-radius: 8px;
-                padding: 12px;
-                font-size: 13px;
+                border-radius: 6px;
+                padding: 10px;
+                font-size: 12px;
                 background-color: {self.theme.INPUT_BACKGROUND};
                 color: {self.theme.GRAY_700};
                 selection-background-color: {self.theme.PRIMARY_LIGHTER};
@@ -414,15 +413,15 @@ class StyleSheet:
             QListWidget {{
                 background-color: {self.theme.WHITE};
                 border: 1px solid {self.theme.BORDER_COLOR};
-                border-radius: 8px;
+                border-radius: 6px;
                 outline: none;
-                padding: 4px;
-                font-size: 13px;
+                padding: 3px;
+                font-size: 12px;
             }}
             QListWidget::item {{
-                padding: 10px 14px;
+                padding: 8px 12px;
                 margin: 1px 0;
-                border-radius: 5px;
+                border-radius: 4px;
                 color: {self.theme.GRAY_700};
             }}
             QListWidget::item:hover {{
@@ -442,8 +441,8 @@ class StyleSheet:
             QStackedWidget {{
                 background-color: {self.theme.WHITE};
                 border: 1px solid {self.theme.BORDER_COLOR};
-                border-radius: 8px;
-                padding: 16px;
+                border-radius: 6px;
+                padding: 12px;
             }}
         """
 
@@ -452,7 +451,7 @@ class StyleSheet:
         return f"""
             QSplitter::handle {{
                 background-color: {self.theme.BORDER_COLOR};
-                width: 2px;
+                width: 1px;
             }}
             QSplitter::handle:hover {{
                 background-color: {self.theme.PRIMARY};
@@ -469,8 +468,8 @@ class StyleSheet:
                 color: {self.theme.GRAY_800};
                 background: transparent;
                 border: none;
-                margin-bottom: 8px;
-                padding: 4px 0;
+                margin-bottom: 6px;
+                padding: 3px 0;
             }}
         """
 
@@ -482,8 +481,8 @@ class StyleSheet:
                 font-size: 11px;
                 background: transparent;
                 border: none;
-                line-height: 1.4;
-                padding: 2px 0;
+                line-height: 1.3;
+                padding: 1px 0;
             }}
         """
 
@@ -492,7 +491,7 @@ class StyleSheet:
         return f"""
             QLabel {{
                 border: 1px solid {self.theme.GRAY_400};
-                padding: 6px 10px;
+                padding: 5px 8px;
                 background-color: {self.theme.WHITE};
                 color: {self.theme.GRAY_700};
                 border-radius: 4px;
@@ -502,13 +501,13 @@ class StyleSheet:
 
     # 工具栏和底部样式
     def get_bottom_toolbar_style(self) -> str:
-        """底部工具栏样式 - 更紧凑"""
+        """底部工具栏样式 - 修复高度问题"""
         return f"""
             QWidget {{
                 background-color: {self.theme.BACKGROUND};
                 border-top: 1px solid {self.theme.BORDER_COLOR};
-                min-height: 40px;
-                max-height: 40px;
+                min-height: 60px;
+                /* 移除 max-height 限制，避免遮挡按钮 */
             }}
         """
 
@@ -517,7 +516,7 @@ class StyleSheet:
         return f"""
             QLabel {{
                 color: {self.theme.GRAY_600};
-                font-size: 11px;
+                font-size: 10px;
                 background: transparent;
             }}
         """
@@ -530,6 +529,32 @@ class StyleSheet:
                 border: none;
                 max-height: 1px;
                 min-height: 1px;
+            }}
+        """
+
+    def get_nav_list_style(self) -> str:
+        return f"""
+            QListWidget {{
+                background-color: transparent;
+                border: none;
+                outline: none;
+                font-size: 11px;
+            }}
+            QListWidget::item {{
+                padding: 6px 8px;
+                margin: 1px 0;
+                border-radius: 3px;
+                color: {self.theme.GRAY_700};
+                min-height: 16px;
+            }}
+            QListWidget::item:hover {{
+                background-color: {self.theme.PRIMARY_LIGHTER};
+                color: {self.theme.PRIMARY};
+            }}
+            QListWidget::item:selected {{
+                background-color: {self.theme.PRIMARY};
+                color: {self.theme.WHITE};
+                font-weight: 500;
             }}
         """
 

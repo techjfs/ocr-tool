@@ -656,7 +656,7 @@ class FloatingIndicator(QWidget):
     def show_at_cursor(self, text="TEST"):
         self.label.setText(text)
         cursor_pos = QCursor.pos()
-        self.move(cursor_pos.x(), cursor_pos.y())
+        self.move(cursor_pos.x() - 60, cursor_pos.y() + 160)
         self.show()
 
     def hide_animated(self):
