@@ -478,7 +478,7 @@ class MainWindow(QMainWindow):
                 self.hotkey_manager.stop()
 
             self.hotkey_manager = CrossPlatformHotkeyManager(self.hotkey)
-            self.hotkey_manager.hotkey_pressed.connect(self.start_screenshot)
+            self.hotkey_manager.hotkey_activated.connect(self.start_screenshot)
             self.hotkey_manager.mouse_clicked.connect(self.start_hover)
             self.hotkey_manager.start()
 

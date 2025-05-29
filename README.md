@@ -30,8 +30,7 @@ freemdict上有一些质量上层的中英文词典，不用注册账号，可�
 + [RapidOCR](https://rapidai.github.io/RapidOCRDocs/main/)
 
 ## TODO
-- [ ] 调研RapidOCR(相对PaddleOCR推理加速，降低延迟)
-- [ ] ocr_engine同时支持PaddleOCR和RapidOCR
+- [x] 调研RapidOCR(相对PaddleOCR推理加速，降低延迟)
 - [x] 重构热键管理，支持Mac和Windows
 - [ ] 优先保证Windows下功能正常
 - [ ] 验证在MacOS下软件功能是否正常

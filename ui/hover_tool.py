@@ -21,8 +21,8 @@ class CaptureConfig:
 
     # 视觉反馈配置 - 优化颜色和持续时间
     FEEDBACK_DURATION = 1200  # 增加显示时间到1.2秒
-    FEEDBACK_COLOR = QColor(255, 0, 0, 200)  # 改为红色边框，更明显
-    FEEDBACK_FILL_COLOR = QColor(255, 0, 0, 30)  # 红色半透明填充
+    FEEDBACK_COLOR = QColor(255, 0, 0, 168)  # 改为红色边框，更明显
+    FEEDBACK_FILL_COLOR = QColor(255, 0, 0, 24)  # 红色半透明填充
 
     # 新增: 调试模式配置
     DEBUG_MODE = True  # 启用调试输出
