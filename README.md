@@ -4,7 +4,7 @@
 
 以前电脑上一直使用的欧路词典，虽然欧路词典可以配置第三方词典，但集成了太多自己用不到的功能，因此打算换一个比较纯粹的离线词典软件，搜索一番后发现了
 GoldenDict-ng([freemdict](https://forum.freemdict.com/)上找到的)，因此切换到了这个软件上面，但是开发者推荐的Windows上的Caputer2Text
-使用的OCR技术为Tesseract，识别中文效果一般，因此打算基于PaddleOCR/RapidOCR开发一款类似的套壳软件。
+使用的OCR技术为Tesseract，识别中文效果一般，因此打算基于PaddleOCR/RapidOCR开发一款类似的软件。
 
 freemdict上有一些质量上层的中英文词典，不用注册账号，可直接下载，此处给出几款词典的链接(不定期更新)：
 
