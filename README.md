@@ -29,6 +29,16 @@ freemdict上有一些质量上层的中英文词典，不用注册账号，可�
 + [PaddleOCR, v5版本](https://paddlepaddle.github.io/PaddleOCR/main/quick_start.html)
 + [RapidOCR](https://rapidai.github.io/RapidOCRDocs/main/)
 
+### 界面
+
+<img src="docs/images/ocr_tool_main_window.png" alt="主界面">
+
+<img src="docs/images/open_mouse_quci.png" alt="开启悬停取词">
+
+<img src="docs/images/settings_dialog_1.png" alt="设置-界面设置">
+
+<img src="docs/images/settings_dialog_2.png" alt="设置-系统设置">
+
 ## TODO
 - [x] 调研RapidOCR(相对PaddleOCR推理加速，降低延迟)
 - [x] 重构热键管理，支持Mac和Windows
