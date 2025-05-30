@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
 from PySide6.QtCore import Qt, QSize
 import subprocess
 import os
-from ui.theme import default_stylesheet
+from ui.theme import ThemeManager, ThemeType, create_stylesheet
 
 
 class SectionWidget(QWidget):
@@ -45,12 +45,20 @@ class SettingsDialog(QDialog):
     def __init__(self, settings_manager, parent=None):
         super().__init__(parent)
         self.settings_manager = settings_manager
-        self.stylesheet = default_stylesheet
+
+        # 根据设置管理器中的主题配置创建样式表
+        current_theme = self.settings_manager.get_value("current_theme", "blue")
+        theme_type = ThemeType(current_theme)
+        self.stylesheet = create_stylesheet(theme_type)
+
         self.setWindowTitle("设置")
         self.setModal(True)
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.WindowCloseButtonHint)
         self.setMinimumSize(680, 520)
         self.resize(720, 580)
+
+        # 存储主题按钮的引用，用于状态管理
+        self.theme_buttons = {}
 
         self.setup_ui()
         self.load_settings()
@@ -153,21 +161,182 @@ class SettingsDialog(QDialog):
     def create_ui_settings_page(self):
         theme_section = SectionWidget("主题配色", "选择应用程序的视觉主题", self.stylesheet)
         theme_layout = QHBoxLayout()
-        for name, color in [("蓝色主题", "#4A90E2"), ("红色主题", "#E74C3C"), ("绿色主题", "#27AE60")]:
+
+        # 获取可用主题配置
+        theme_configs = [
+            ("蓝色主题", "#4A90E2", ThemeType.BLUE),
+            ("红色主题", "#E74C3C", ThemeType.RED),
+            ("绿色主题", "#27AE60", ThemeType.GREEN)
+        ]
+
+        # 创建主题按钮组
+        for name, color, theme_type in theme_configs:
             btn = QPushButton(name)
-            btn.setStyleSheet(f"background-color:{color}; color:white; padding:6px; border:none;")
+            btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {color};
+                    color: white;
+                    padding: 8px 16px;
+                    border: 2px solid transparent;
+                    border-radius: 6px;
+                    font-weight: 500;
+                    min-height: 20px;
+                }}
+                QPushButton:hover {{
+                    border-color: rgba(255, 255, 255, 0.7);
+                }}
+                QPushButton:checked {{
+                    border-color: white;
+                    font-weight: 600;
+                }}
+            """)
             btn.setCheckable(True)
+            btn.clicked.connect(lambda checked, t=theme_type: self.on_theme_changed(t))
+
+            # 存储按钮引用
+            self.theme_buttons[theme_type] = btn
             theme_layout.addWidget(btn)
+
         theme_layout.addStretch()
         theme_section.addLayout(theme_layout)
 
+        # 主题预览区域
+        preview_section = SectionWidget("主题预览", "预览当前选中的主题效果", self.stylesheet)
+        self.create_theme_preview(preview_section)
+
         display_section = SectionWidget("显示选项", "调整界面显示相关设置", self.stylesheet)
         form = QFormLayout()
-        form.addRow("界面字体大小:", QLineEdit("12"))
-        form.addRow("窗口透明度:", QLineEdit("100"))
+
+        # 界面字体大小设置
+        self.font_size_input = QLineEdit()
+        self.font_size_input.setStyleSheet(self.stylesheet.get_line_edit_style())
+        form.addRow("界面字体大小:", self.font_size_input)
+
+        # 窗口透明度设置
+        self.opacity_input = QLineEdit()
+        self.opacity_input.setStyleSheet(self.stylesheet.get_line_edit_style())
+        form.addRow("窗口透明度:", self.opacity_input)
+
         display_section.addLayout(form)
 
-        self.create_scrollable_page("界面设置", "🎨", [theme_section, display_section])
+        self.create_scrollable_page("界面设置", "🎨", [theme_section, preview_section, display_section])
+
+    def create_theme_preview(self, parent_section):
+        """创建主题预览区域"""
+        preview_layout = QVBoxLayout()
+
+        # 预览标题
+        preview_title = QLabel("预览效果")
+        preview_title.setStyleSheet(self.stylesheet.get_section_title_style(12))
+        preview_layout.addWidget(preview_title)
+
+        # 预览容器
+        preview_container = QWidget()
+        preview_container.setStyleSheet(self.stylesheet.get_card_style())
+        preview_container.setFixedHeight(120)
+
+        container_layout = QVBoxLayout(preview_container)
+        container_layout.setContentsMargins(16, 12, 16, 12)
+
+        # 预览按钮组
+        button_layout = QHBoxLayout()
+
+        primary_btn = QPushButton("主要按钮")
+        primary_btn.setStyleSheet(self.stylesheet.get_primary_button_style())
+
+        secondary_btn = QPushButton("次要按钮")
+        secondary_btn.setStyleSheet(self.stylesheet.get_secondary_button_style())
+
+        small_btn = QPushButton("小按钮")
+        small_btn.setStyleSheet(self.stylesheet.get_small_button_style())
+
+        button_layout.addWidget(primary_btn)
+        button_layout.addWidget(secondary_btn)
+        button_layout.addWidget(small_btn)
+        button_layout.addStretch()
+
+        # 预览输入框
+        preview_input = QLineEdit("示例输入框")
+        preview_input.setStyleSheet(self.stylesheet.get_line_edit_style())
+
+        container_layout.addLayout(button_layout)
+        container_layout.addWidget(preview_input)
+        container_layout.addStretch()
+
+        preview_layout.addWidget(preview_container)
+        parent_section.addLayout(preview_layout)
+
+        # 保存预览控件的引用，用于主题切换时更新
+        self.preview_widgets = {
+            'container': preview_container,
+            'primary_btn': primary_btn,
+            'secondary_btn': secondary_btn,
+            'small_btn': small_btn,
+            'input': preview_input
+        }
+
+    def on_theme_changed(self, theme_type: ThemeType):
+        """主题切换处理"""
+        # 更新按钮选中状态
+        for btn_theme, btn in self.theme_buttons.items():
+            btn.setChecked(btn_theme == theme_type)
+
+        # 创建新的样式表
+        self.stylesheet = create_stylesheet(theme_type)
+
+        # 应用新主题到整个对话框
+        self.apply_theme_to_dialog()
+
+        # 更新预览区域
+        self.update_theme_preview()
+
+        # 保存主题设置（临时保存，等用户点击保存时正式生效）
+        self.current_theme_type = theme_type
+
+    def apply_theme_to_dialog(self):
+        """将新主题应用到整个对话框"""
+        # 重新应用样式到主要组件
+        for widget in self.findChildren(QWidget):
+            widget_class = widget.__class__.__name__
+
+            # 根据控件类型应用相应样式
+            if isinstance(widget, QPushButton):
+                # 跳过主题按钮，它们有自定义样式
+                if widget not in self.theme_buttons.values():
+                    if hasattr(widget, 'property') and widget.property('button_type'):
+                        button_type = widget.property('button_type')
+                        if button_type == 'primary':
+                            widget.setStyleSheet(self.stylesheet.get_primary_button_style())
+                        elif button_type == 'secondary':
+                            widget.setStyleSheet(self.stylesheet.get_secondary_button_style())
+            elif isinstance(widget, QLineEdit):
+                widget.setStyleSheet(self.stylesheet.get_line_edit_style())
+            elif isinstance(widget, QListWidget):
+                if widget == self.category_list:
+                    widget.setStyleSheet(self.stylesheet.get_nav_list_style())
+
+        # 重新应用主要区域样式
+        self.update_main_areas_style()
+
+    def update_main_areas_style(self):
+        """更新主要区域的样式"""
+        # 重新获取主要区域并应用样式
+        title_widget = self.findChild(QWidget, "title_widget")
+        if title_widget:
+            title_widget.setStyleSheet(self.stylesheet.get_title_bar_style())
+
+        content_widget = self.findChild(QWidget, "content_widget")
+        if content_widget:
+            content_widget.setStyleSheet(self.stylesheet.get_content_background_style())
+
+    def update_theme_preview(self):
+        """更新主题预览区域"""
+        if hasattr(self, 'preview_widgets'):
+            self.preview_widgets['container'].setStyleSheet(self.stylesheet.get_card_style())
+            self.preview_widgets['primary_btn'].setStyleSheet(self.stylesheet.get_primary_button_style())
+            self.preview_widgets['secondary_btn'].setStyleSheet(self.stylesheet.get_secondary_button_style())
+            self.preview_widgets['small_btn'].setStyleSheet(self.stylesheet.get_small_button_style())
+            self.preview_widgets['input'].setStyleSheet(self.stylesheet.get_line_edit_style())
 
     def create_system_settings_page(self):
         hotkey_section = SectionWidget("快捷键配置", "设置全局快捷键组合", self.stylesheet)
@@ -261,12 +430,33 @@ class SettingsDialog(QDialog):
             QMessageBox.critical(self, "错误", f"❌ 命令执行失败:\n{str(e)}")
 
     def load_settings(self):
+        """加载设置"""
+        # 加载主题设置
+        current_theme = self.settings_manager.get_value("current_theme", "blue")
+        try:
+            theme_type = ThemeType(current_theme)
+            self.current_theme_type = theme_type
+            # 设置对应主题按钮为选中状态
+            if theme_type in self.theme_buttons:
+                self.theme_buttons[theme_type].setChecked(True)
+        except ValueError:
+            # 如果主题值无效，使用默认蓝色主题
+            self.current_theme_type = ThemeType.BLUE
+            self.theme_buttons[ThemeType.BLUE].setChecked(True)
+
+        # 加载显示设置
+        font_size = self.settings_manager.get_value("font_size", "12")
+        self.font_size_input.setText(str(font_size))
+
+        opacity = self.settings_manager.get_value("window_opacity", "100")
+        self.opacity_input.setText(str(opacity))
+
+        # 加载外部工具设置
         cmd = self.settings_manager.get_value("external_tool_exec_cmd", "")
         if cmd:
             self.check_info_label.setText(cmd)
             if '"' in cmd:
                 parts = cmd.split('"')
-                print(parts)
                 if len(parts) >= 3:
                     tool_path = parts[1]
                     file_name = os.path.basename(tool_path)
@@ -275,25 +465,70 @@ class SettingsDialog(QDialog):
                     self.tool_path_label.setProperty("full_path", tool_path)
                     self.tool_param_input.setText(f'"{parts[3].strip()}"')
 
+        # 加载快捷键设置
         hotkey = self.settings_manager.get_value("capture_shortcuts", "alt+c")
         self.hotkey_input.setText(hotkey)
 
     def save_settings(self):
+        """保存设置"""
+        # 保存主题设置
+        if hasattr(self, 'current_theme_type'):
+            self.settings_manager.set_value("current_theme", self.current_theme_type.value)
+
+        # 保存显示设置
+        try:
+            font_size = int(self.font_size_input.text())
+            self.settings_manager.set_value("font_size", font_size)
+        except ValueError:
+            pass  # 忽略无效的字体大小值
+
+        try:
+            opacity = int(self.opacity_input.text())
+            if 10 <= opacity <= 100:  # 限制透明度范围
+                self.settings_manager.set_value("window_opacity", opacity)
+        except ValueError:
+            pass  # 忽略无效的透明度值
+
+        # 保存外部工具设置
         cmd = self.check_info_label.text()
         if cmd != "请先选择外部工具":
             self.settings_manager.set_value("external_tool_exec_cmd", cmd)
+
+        # 保存快捷键设置
         self.settings_manager.set_value("capture_shortcuts", self.hotkey_input.text())
+
+        # 同步设置到文件
         self.settings_manager.sync()
 
     def reset_to_default(self):
-        reply = QMessageBox.question(self, "确认操作", "⚠️ 确定要恢复默认设置吗？", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        """恢复默认设置"""
+        reply = QMessageBox.question(
+            self, "确认操作",
+            "⚠️ 确定要恢复默认设置吗？这将重置所有设置包括主题配置。",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
         if reply == QMessageBox.StandardButton.Yes:
             self.settings_manager.reset_to_defaults()
+
+            # 重置主题为默认（蓝色）
+            self.on_theme_changed(ThemeType.BLUE)
+
+            # 重新加载设置
             self.load_settings()
+
             QMessageBox.information(self, "完成", "✅ 已恢复默认设置！")
 
     def accept(self):
+        """确认保存设置"""
         self.save_settings()
-        if self.parent():
+
+        # 通知父窗口主题已更改
+        if self.parent() and hasattr(self.parent(), 'apply_theme'):
+            if hasattr(self, 'current_theme_type'):
+                self.parent().apply_theme(self.current_theme_type)
+
+        # 设置快捷键管理器
+        if self.parent() and hasattr(self.parent(), 'setup_hotkey_manager'):
             self.parent().setup_hotkey_manager()
+
         super().accept()

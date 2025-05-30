@@ -32,6 +32,10 @@ class SettingsManager:
         "config_version": CURRENT_CONFIG_VERSION,
         "external_tool_exec_cmd": "",
         "capture_shortcuts": "alt+c",
+        "current_theme": "blue",
+        "font_size": "12",
+        "window_opacity": "100",
+
     }
 
     def __init__(self, config_file=None, use_file_storage=True):

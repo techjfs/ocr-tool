@@ -14,7 +14,7 @@ from core.hotkey_manager import CrossPlatformHotkeyManager
 from core.settings_manager import SettingsManager
 from ui.capture_tool import CaptureTool
 from ui.hover_tool import HoverTool
-from ui.theme import default_stylesheet
+from ui.theme import ThemeManager, ThemeType, create_stylesheet
 from ui.settings_dialog import SettingsDialog
 from ui.status_label import StatusLabel
 
@@ -66,7 +66,6 @@ class MainWindow(QMainWindow):
     def _init_components(self):
         """初始化核心组件"""
         try:
-            self.stylesheet = default_stylesheet
             self.capture_tool = CaptureTool()
             self.hover_tool = HoverTool()
             self.settings_manager = SettingsManager(use_file_storage=True)
@@ -76,6 +75,11 @@ class MainWindow(QMainWindow):
             self.has_external_tool = bool(
                 self.settings_manager.get_value("external_tool_exec_cmd", "")
             )
+
+            # 根据设置管理器中的主题配置创建样式表
+            current_theme = self.settings_manager.get_value("current_theme", "blue")
+            theme_type = ThemeType(current_theme)
+            self.stylesheet = create_stylesheet(theme_type)
 
             self.logger.info("核心组件初始化完成")
         except Exception as e:
@@ -592,7 +596,6 @@ class MainWindow(QMainWindow):
             if dialog.exec() == QDialog.DialogCode.Accepted:
                 self._update_ui_config()
                 self.setup_hotkey_manager()  # 重新设置热键
-                QMessageBox.information(self, "成功", "设置已保存并应用！")
                 self.logger.info("设置已更新")
         except Exception as e:
             self.logger.error(f"打开设置对话框失败: {e}")
@@ -832,3 +835,47 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.logger.error(f"处理按键事件失败: {e}")
             super().keyPressEvent(event)
+
+    def restart_application(self):
+        """重启应用程序"""
+        try:
+            self.logger.info("准备重启应用程序...")
+
+            # 获取当前执行文件路径
+            import sys
+            python_exe = sys.executable
+            script_path = sys.argv[0]
+
+            # 清理资源
+            self._cleanup_resources()
+
+            # 启动新进程
+            subprocess.Popen([python_exe, script_path])
+
+            # 退出当前进程
+            QApplication.quit()
+
+        except Exception as e:
+            self.logger.error(f"重启应用程序失败: {e}")
+            QMessageBox.critical(self, "错误", f"重启失败: {str(e)}")
+
+    def apply_theme(self, theme_type):
+        """应用主题（静默重启）"""
+        try:
+            # 保存新主题设置
+            self.settings_manager.set_value("current_theme", theme_type.value)
+
+            # 显示简单提示
+            self.tray_icon.showMessage(
+                "主题已更新",
+                "正在重启应用程序...",
+                QSystemTrayIcon.MessageIcon.Information,
+                1000
+            )
+
+            # 延迟1秒后重启（让托盘消息显示）
+            QTimer.singleShot(1000, self.restart_application)
+
+        except Exception as e:
+            self.logger.error(f"应用主题失败: {e}")
+            QMessageBox.critical(self, "错误", f"主题设置失败: {str(e)}")
