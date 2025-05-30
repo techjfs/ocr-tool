@@ -12,6 +12,8 @@ from PySide6.QtGui import (QPainter, QPen, QColor, QCursor, QFont)
 import sys
 import signal
 
+from components.floating_indicator import FloatingIndicator
+
 
 class ModifierKey(Enum):
     """修饰键枚举"""
@@ -166,10 +168,16 @@ class FeedbackManager(QObject):
         super().__init__()  # 调用父类构造函数
 
         self.floating_indicator = FloatingIndicator()
+        self.floating_indicator.set_offset(40, 60)
         self.screen_overlay = ScreenOverlay()
         self.sound_feedback = SoundFeedback()
 
         self._current_feedback_state = None
+
+        # 创建定时器（在构造函数中创建，确保在主线程）
+        self.idle_timer = QTimer()
+        self.idle_timer.setSingleShot(True)
+        self.idle_timer.timeout.connect(self._show_idle_state)
 
         # 连接信号到槽函数（确保在主线程中）
         self.show_idle_signal.connect(self._show_idle_state)
@@ -179,7 +187,7 @@ class FeedbackManager(QObject):
     def show_ready_state(self):
         """显示准备状态反馈"""
         if self._current_feedback_state != "ready":
-            self.floating_indicator.show_at_cursor("🔥 Ready")
+            self.floating_indicator.show_at_cursor("🔥 Ready", follow_mouse=True)
             self.screen_overlay.show_overlay()
             self.sound_feedback.play_activate_sound()
             self._current_feedback_state = "ready"
@@ -189,21 +197,23 @@ class FeedbackManager(QObject):
 
     def _show_activated_state(self, message: str = "Activated!"):
         """显示激活状态反馈"""
-        self.floating_indicator.show_at_cursor(f"✅ {message}")
+        self.floating_indicator.show_at_cursor(f"✅ {message}", follow_mouse=True)
         self.sound_feedback.play_capture_sound()
         self._current_feedback_state = "activated"
 
-        QTimer.singleShot(3000, self.show_idle_signal.emit)
+        # 使用预先创建的定时器，而不是QTimer.singleShot
+        self.idle_timer.start(3000)
 
     def show_error_state(self, message: str = "Error"):
         self.show_error_signal.emit(message)
 
     def _show_error_state(self, message: str = "Error"):
         """显示错误状态反馈"""
-        self.floating_indicator.show_at_cursor(f"❌ {message}")
+        self.floating_indicator.show_at_cursor(f"❌ {message}", follow_mouse=True)
         self._current_feedback_state = "error"
 
-        QTimer.singleShot(3000, self.show_idle_signal.emit)
+        # 使用预先创建的定时器，而不是QTimer.singleShot
+        self.idle_timer.start(3000)
 
     def show_idle_state(self):
         self.show_idle_signal.emit()
@@ -214,7 +224,6 @@ class FeedbackManager(QObject):
             self.floating_indicator.hide_animated()
             self.screen_overlay.hide_overlay()
             self._current_feedback_state = "idle"
-
 
 class PlatformHandler(ABC):
     """平台处理器抽象基类 - 只负责底层平台相关功能"""
@@ -630,37 +639,6 @@ class CrossPlatformHotkeyManager(QObject):
             'current_state': self.get_current_state(),
             'running': self._running
         }
-
-
-# 保持原有的UI组件类（简化版本）
-class FloatingIndicator(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.FramelessWindowHint | Qt.WindowType.Tool)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-
-        self.setFixedSize(200, 50)
-
-        self.label = QLabel("🔥 Ready", self)
-        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.label.setStyleSheet("""
-            QLabel {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 rgba(255, 107, 129, 200), stop:1 rgba(255, 154, 158, 200));
-                color: white; border-radius: 20px; font-weight: bold;
-                font-size: 12px; padding: 8px 16px;
-            }
-        """)
-        self.label.setGeometry(0, 0, 120, 40)
-
-    def show_at_cursor(self, text="TEST"):
-        self.label.setText(text)
-        cursor_pos = QCursor.pos()
-        self.move(cursor_pos.x() - 60, cursor_pos.y() + 160)
-        self.show()
-
-    def hide_animated(self):
-        self.hide()
 
 class ScreenOverlay(QWidget):
     """全屏遮罩"""

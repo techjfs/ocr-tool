@@ -560,7 +560,7 @@ class StyleSheet:
 
 
 # 全局样式管理器实例
-default_theme = BlueTheme()
+default_theme = GreenTheme()
 default_stylesheet = StyleSheet(default_theme)
 
 # 主题切换函数

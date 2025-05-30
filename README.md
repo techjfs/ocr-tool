@@ -15,7 +15,7 @@ freemdict上有一些质量上层的中英文词典，不用注册账号，可�
 
 一个OCR小工具，可以和[goldendict-ng](https://github.com/xiaoyifang/goldendict-ng)搭配使用
 
-利用LLM(Claude/ChatGPT)，与AI结对编程，共同完成了此项目
+利用LLM(Claude/ChatGPT，非Cursor/Trae/Github Copilot)，与AI结对编程，共同完成了此项目
 
 支持的核心功能：
 1. `alt+c`进行截图取词
@@ -38,6 +38,7 @@ freemdict上有一些质量上层的中英文词典，不用注册账号，可�
 - [ ] 兼容CPU和GPU的ocr_engine，根据用户配置决定使用哪个版本(优先使用CPU，对配置要求低，更加通用)
 - [x] 将部分参数配置化
 - [x] GUI美化，保持界面风格一致
+- [ ] 结果预览界面增强，增加查看原图和上报误判功能
 - [ ] 如果OCR取词出现同分数，考虑是否返回多个，让用户决定，还是扩大截图范围，通过上下文语义来决定结果
 - [ ] 配置升级过程可以安排在程序启动时，启动有个进度条，这个进度条的进度和启动过程中要做的事情有关系
 
