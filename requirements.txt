@@ -3,4 +3,4 @@ pynput==1.8.1
 jieba==0.42.1
 onnxruntime
 --extra-index-url https://pypi.tuna.tsinghua.edu.cn/simple/
-rapidocr
+rapidocr===3.0.0

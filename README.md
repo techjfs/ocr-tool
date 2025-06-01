@@ -25,7 +25,7 @@ freemdict上有一些质量上层的中英文词典，不用注册账号，可�
 1. 支持跨平台使用，Windows系统和MacOS系统
 2. MacOS有自己的一套OCR技术，可参考[Shortcuts.app & Apple's OCR](https://xiaoyifang.github.io/goldendict-ng/howto/ocr/#shortcutsapp-apples-ocr)
 
-核心技术:
+鸣谢下列开源软件提供核心技术:
 + [PaddleOCR, v5版本](https://paddlepaddle.github.io/PaddleOCR/main/quick_start.html)
 + [RapidOCR](https://rapidai.github.io/RapidOCRDocs/main/)
 
@@ -45,6 +45,7 @@ freemdict上有一些质量上层的中英文词典，不用注册账号，可�
 - [ ] 优先保证Windows下功能正常
 - [ ] 验证在MacOS下软件功能是否正常
 - [ ] 打包方式完善
+- [ ] 增强ocr_engine参数配置，使其更灵活，比如用户决定使用PPOCRV4还是PPOCRV5
 - [ ] 兼容CPU和GPU的ocr_engine，根据用户配置决定使用哪个版本(优先使用CPU，对配置要求低，更加通用)
 - [x] 将部分参数配置化
 - [x] GUI美化，保持界面风格一致

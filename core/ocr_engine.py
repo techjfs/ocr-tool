@@ -1,8 +1,7 @@
-from rapidocr import RapidOCR
 import re
 from PySide6.QtGui import QImage
 from util.utils import PathConfig, qimage_to_numpy
-
+from rapidocr import EngineType, OCRVersion, RapidOCR, ModelType, LangDet, LangRec
 
 class OCREngine:
     """OCR引擎封装类，支持中英文自适应识别"""
@@ -17,18 +16,18 @@ class OCREngine:
 
     def __init__(self):
         self.default_ocr = RapidOCR(params={
-            "Global.with_onnx": True,
-            "Global.lang_det": "ch_mobile",
-            "Global.lang_rec": "ch_mobile",
-            "Det.model_path": PathConfig.get_model_path("ch_PP-OCRv4_det_infer.onnx"),
             "Cls.model_path": PathConfig.get_model_path("ch_ppocr_mobile_v2.0_cls_infer.onnx"),
+            "Det.ocr_version": OCRVersion.PPOCRV4,
+            # "Det.model_type": ModelType.SERVER,
+            "Det.model_path": PathConfig.get_model_path("ch_PP-OCRv4_det_infer.onnx"),
+            "Rec.ocr_version": OCRVersion.PPOCRV4,
+            # "Rec.model_type": ModelType.SERVER,
             "Rec.model_path": PathConfig.get_model_path("ch_PP-OCRv4_rec_infer.onnx"),
             "Global.font_path": PathConfig.models_dir / "FZYTK.TTF"
         })
         self.en_ocr = RapidOCR(params={
-            "Global.with_onnx": True,
-            "Global.lang_det": "en_mobile",
-            "Global.lang_rec": "en_mobile",
+            "Det.lang_type": LangDet.EN,
+            "Rec.lang_type": LangRec.EN,
             "Det.model_path": PathConfig.get_model_path("en_PP-OCRv3_det_infer.onnx", lang_type="en"),
             "Rec.model_path": PathConfig.get_model_path("en_PP-OCRv4_rec_infer.onnx", lang_type="en"),
             "Cls.model_path": PathConfig.get_model_path("ch_ppocr_mobile_v2.0_cls_infer.onnx"),
@@ -82,9 +81,10 @@ class OCREngine:
         return ch_texts
 
     def process_ocr_result(self, result):
+        if not result:
+            return []
         texts = []
         for i, txt in enumerate(result.txts):
-            # TODO 更新模型到v5版本，需要check此处是否正常
             print(txt, result.boxes[i])
             x_list = [x[0] for x in result.boxes[i]]
             y_list = [x[1] for x in result.boxes[i]]
